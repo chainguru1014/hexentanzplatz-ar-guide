@@ -65,7 +65,7 @@ export const stations: Station[] = [
     variant: "v1",
     unlock: "gps_or_qr",
     tracking: { type: "world_only" },
-    dialogAudio: "/audio/AR_04_03.mp3",
+    dialogAudio: "/audio/AR_04_3.mp3",
     dialogContent: "Mephisto: Noch so viele schlafende Menschenseelen.... Wann meinst du, werden sie aufwachen und sich an uns erinnern? Wann, glaubst du, werden auch die letzten von ihnen endlich zu uns kommen?\nHolla:  Kann nicht mehr lange dauern. In ihren Träumen haben sie unsere Einladung bereits erhalten.\nMephisto: Ein kleiner Reminder kann trotzdem nicht schaden…. Wisst ihr noch? Geist schafft Materie! Die Wissenschaft hat es doch längst bestätigt. Erinnert euch endlich daran!",
     specialButtonTitle: "Weiter zum Flugplatz",
   },
@@ -75,7 +75,7 @@ export const stations: Station[] = [
     variant: "v1",
     unlock: "gps_or_qr",
     tracking: { type: "world_only" },
-    dialogAudio: "/audio/AR_05_03.mp3",
+    dialogAudio: "/audio/AR_05_3.mp3",
     dialogContent: "Holla: Bester Startpunkt, um zum Brocken rüber zu fliegen. Jetzt mit dem Geländer ist es natürlich etwas verstellt. Aber kein Problem...\nMephisto: Materie ist eben nur eine Illusion.\nHolla: Freilich eine schmerzhafte, wenn man sie nicht beherrscht.\nMephisto: Und Schmerzen wollen wir ja nicht, oder?\nHolla: Hier geht's nun weiter über Stock und Stein, viel Spaß beim Kraxeln und grüßt Thor von mir – dazu müsst ihr nur in Richtung der Donar-Eichen nicken. Also lasst Euch Zeit und genießt die gute Luft.\nMephisto: Wir warten dann am Eingang zur Spielstraße auf Euch.",
     specialButtonTitles: ["Abstecher zur Donar-Eiche", "Direkt zur Spielstraße"],
     skipStation: false, // First button increases by 1, second increases by 2
@@ -86,18 +86,9 @@ export const stations: Station[] = [
     variant: "v1",
     unlock: "gps_or_qr",
     tracking: { type: "world_only" },
-    dialogAudio: "/audio/AR_06_03.mp3",
+    dialogAudio: "/audio/AR_06_3.mp3",
     dialogContent: "",
     specialButtonTitle: "",
-  },
-  // Forest example: marker then world
-  {
-    id: "s07",
-    title: "Station 7 (Marker → World Tracking Beispiel)",
-    variant: "v1",
-    unlock: "qr",
-    tracking: { type: "marker_then_world", markerId: "forest_marker_07" },
-    dialogAudio: "/audio/s07-dialog.mp3"
   },
   // Remaining stations as placeholders (excluding s01-s05 and s07 which are already defined)
   ...Array.from({ length: 25 - 6 }, (_, i) => {
