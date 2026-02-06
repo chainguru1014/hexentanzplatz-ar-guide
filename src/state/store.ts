@@ -64,15 +64,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   startStation: (id) => {
     const nextId = id ?? get().currentStationId;
-    set((st) => ({
-      currentStationId: nextId,
-      screen: "station",
-      unlockedStations: st.unlockedStations.includes(nextId)
-        ? st.unlockedStations
-        : [...st.unlockedStations, nextId].sort(
-            (a, b) => Number(a.slice(1)) - Number(b.slice(1))
-          ),
-    }));
+    set((st) => {
+      const newState: Partial<AppState> = {
+        currentStationId: nextId,
+        screen: "station",
+      };
+      
+      // Only add to unlockedStations if it's a valid StationId (not "s00")
+      if (nextId !== "s00") {
+        const stationId = nextId as StationId;
+        newState.unlockedStations = st.unlockedStations.includes(stationId)
+          ? st.unlockedStations
+          : [...st.unlockedStations, stationId].sort(
+              (a, b) => Number(a.slice(1)) - Number(b.slice(1))
+            );
+      } else {
+        newState.unlockedStations = st.unlockedStations;
+      }
+      
+      return newState;
+    });
   },
   setCurrentStation: (id: StationId | "s00") =>
     set((st) => ({
