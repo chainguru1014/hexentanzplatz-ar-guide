@@ -137,7 +137,7 @@ export function AudioPlayerBar({
           el.currentTime = time;
           setCurrentTime(time);
         }
-        if (dur > 0 && Math.abs(el.duration - dur) > 0.1) {
+        if (el && dur > 0 && Math.abs(el.duration - dur) > 0.1) {
           setDuration(dur);
         }
       }
