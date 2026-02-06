@@ -122,25 +122,12 @@ export function QRCodeScanner({
               return;
             }
 
-            // If target station ID is provided, check if it matches
-            if (targetStationId) {
-              if (detectedId === targetStationId) {
-                // Match found - stop scanning and trigger callback
-                html5QrCode.stop().catch(() => {});
-                setIsScanning(false);
-                onDetect(detectedId);
-              } else {
-                // Mismatch - show error but continue scanning
-                const errMsg = `QR code station ID (${detectedId}) does not match target (${targetStationId})`;
-                setError(errMsg);
-                onError?.(errMsg);
-              }
-            } else {
-              // No target specified - just detect and trigger callback
-              html5QrCode.stop().catch(() => {});
-              setIsScanning(false);
-              onDetect(detectedId);
-            }
+            // Stop scanning immediately when QR code is detected (both correct and wrong)
+            html5QrCode.stop().catch(() => {});
+            setIsScanning(false);
+            
+            // Trigger callback with detected ID (ScanScreen will handle validation and show appropriate dialog)
+            onDetect(detectedId);
           },
           (errorMessage) => {
             // Ignore scanning errors (they're frequent during scanning)

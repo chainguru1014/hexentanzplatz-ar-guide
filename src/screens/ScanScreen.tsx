@@ -18,8 +18,9 @@ export function ScanScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const expectId = (searchParams.get("expect") || "s02") as StationId;
-  const [status, setStatus] = useState<"idle" | "scanning" | "scanned">("scanning");
+  const [status, setStatus] = useState<"idle" | "scanning" | "scanned" | "wrong">("scanning");
   const [error, setError] = useState<string | null>(null);
+  const [detectedStationId, setDetectedStationId] = useState<StationId | null>(null);
   const goToMap = useAppStore((s) => s.goToMap);
 
   // Start Mattercraft QR scan if available
@@ -28,18 +29,23 @@ export function ScanScreen() {
   }, [expectId]);
 
   const handleQRDetect = useCallback((detectedId: StationId) => {
-    // Validate station ID
+    // Stop scanning immediately
+    setStatus("idle");
+    
+    // Validate station ID format
     if (!/^s(0[1-9]|1[0-9]|2[0-5])$/.test(detectedId)) {
-      alert("QR-Code ungültig für nächste Station");
-      setError(`Ungültige Stations-ID: ${detectedId}`);
+      setDetectedStationId(null);
+      setStatus("wrong");
+      setError("Ungültiges QR-Code-Format erkannt.");
       return;
     }
 
     // Check if station exists
     const station = stations.find((s) => s.id === detectedId);
     if (!station) {
-      alert("QR-Code ungültig für nächste Station");
-      setError(`Station nicht gefunden: ${detectedId}`);
+      setDetectedStationId(null);
+      setStatus("wrong");
+      setError("Station nicht gefunden.");
       return;
     }
 
@@ -58,18 +64,17 @@ export function ScanScreen() {
 
     // Check if detected station is exactly current + 1
     if (detectedId === expectedNextStationId) {
-      // Correct target station detected - don't update positions, redirect to arrived page
+      // Correct target station detected - show success dialog
+      setDetectedStationId(detectedId);
       setStatus("scanned");
       setError(null);
-
-      // Navigate to arrived page (don't update positions - that happens when clicking buttons in station page)
-      router.push(`/arrived?station=${detectedId}`);
     } else {
-      // Wrong station - show alert and error
-      alert("QR-Code ungültig für nächste Station");
-      setError(`QR-Code Station (${detectedId}) ist nicht die nächste Station. Erwartet: ${expectedNextStationId}`);
+      // Wrong station - show error dialog
+      setDetectedStationId(null);
+      setStatus("wrong");
+      setError("Falscher QR-Code erkannt! Bitte scannen Sie den korrekten QR-Code.");
     }
-  }, [router]);
+  }, []);
 
   // Listen for Mattercraft QR events
   useEffect(() => {
@@ -85,6 +90,19 @@ export function ScanScreen() {
   const handleCancel = () => {
     goToMap();
     router.push("/map");
+  };
+
+  const handleSuccessContinue = () => {
+    if (detectedStationId) {
+      // Navigate to arrived page
+      router.push(`/arrived?station=${detectedStationId}`);
+    }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setDetectedStationId(null);
+    setStatus("scanning");
   };
 
   return (
@@ -159,70 +177,133 @@ export function ScanScreen() {
           }}>
             QR-Code scannen
           </h2>
-          <p className="scan-screen__instruction" style={{
-            color: "rgba(255, 255, 255, 0.9)",
-            fontSize: 14,
-            margin: "0 0 24px 0",
-            textAlign: "center",
-            lineHeight: 1.5,
-          }}>
-            Richte die Kamera auf den QR-Code an der Station. Bei Erfolg startet die Station automatisch.
-          </p>
-          
-          {status === "scanned" && (
-            <p className="scan-screen__status" style={{
-              color: "#4caf50",
+          {status === "scanning" && (
+            <p className="scan-screen__instruction" style={{
+              color: "rgba(255, 255, 255, 0.9)",
               fontSize: 14,
-              margin: "0 0 16px 0",
+              margin: "0 0 24px 0",
               textAlign: "center",
+              lineHeight: 1.5,
             }}>
-              Erkannt – wechsle zur Karte …
+              Richte die Kamera auf den QR-Code an der Station. Bei Erfolg startet die Station automatisch.
             </p>
           )}
           
-          {error && (
+          {/* Success Dialog - Correct QR Code */}
+          {status === "scanned" && detectedStationId && (
             <div style={{
               margin: "0 0 16px 0",
             }}>
-              <p style={{
-                color: "#ff4444",
-                fontSize: 12,
-                margin: "0 0 8px 0",
+              <div style={{
+                padding: 16,
+                background: "rgba(76, 175, 80, 0.15)",
+                borderRadius: 12,
+                border: "2px solid rgba(76, 175, 80, 0.5)",
                 textAlign: "center",
-                padding: 12,
-                background: "rgba(255, 68, 68, 0.15)",
-                borderRadius: 8,
-                border: "1px solid rgba(255, 68, 68, 0.3)",
               }}>
-                {error}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setStatus("scanning");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "10px 20px",
-                  background: "rgba(102, 126, 234, 0.8)",
-                  border: "1px solid rgba(102, 126, 234, 1)",
-                  borderRadius: 8,
-                  color: "white",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = "rgba(102, 126, 234, 1)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "rgba(102, 126, 234, 0.8)";
-                }}
-              >
-                Erneut versuchen
-              </button>
+                <p style={{
+                  color: "#4caf50",
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  margin: "0 0 12px 0",
+                }}>
+                  🎉 Glückwunsch!
+                </p>
+                <p style={{
+                  color: "rgba(255, 255, 255, 0.95)",
+                  fontSize: 16,
+                  margin: "0 0 16px 0",
+                  lineHeight: 1.5,
+                }}>
+                  Sie sind an einer neuen Station angekommen!
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSuccessContinue}
+                  style={{
+                    width: "100%",
+                    padding: "14px 24px",
+                    background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                    border: "none",
+                    borderRadius: 8,
+                    color: "white",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 6px 16px rgba(76, 175, 80, 0.4)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(76, 175, 80, 0.3)";
+                  }}
+                >
+                  Los geht's!
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error Dialog - Wrong QR Code */}
+          {status === "wrong" && error && (
+            <div style={{
+              margin: "0 0 16px 0",
+            }}>
+              <div style={{
+                padding: 16,
+                background: "rgba(255, 68, 68, 0.15)",
+                borderRadius: 12,
+                border: "2px solid rgba(255, 68, 68, 0.5)",
+                textAlign: "center",
+              }}>
+                <p style={{
+                  color: "#ff4444",
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  margin: "0 0 12px 0",
+                }}>
+                  ⚠️ Falscher QR-Code erkannt!
+                </p>
+                <p style={{
+                  color: "rgba(255, 255, 255, 0.95)",
+                  fontSize: 16,
+                  margin: "0 0 16px 0",
+                  lineHeight: 1.5,
+                }}>
+                  Bitte scannen Sie den korrekten QR-Code.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  style={{
+                    width: "100%",
+                    padding: "14px 24px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none",
+                    borderRadius: 8,
+                    color: "white",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 6px 16px rgba(102, 126, 234, 0.4)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+                  }}
+                >
+                  Erneut versuchen
+                </button>
+              </div>
             </div>
           )}
 
