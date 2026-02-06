@@ -21,9 +21,28 @@ export function QRCodeScanner({
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const detectedRef = useRef<boolean>(false); // Track if QR code was detected to prevent restart
 
   useEffect(() => {
-    if (!active || !containerRef.current) return;
+    // Reset detected flag when active changes to true (user clicked retry)
+    if (active && detectedRef.current) {
+      detectedRef.current = false;
+    }
+
+    if (!active || !containerRef.current) {
+      // Stop scanner if not active
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
+        setIsScanning(false);
+      }
+      return;
+    }
+
+    // Don't restart if we already detected a QR code
+    if (detectedRef.current) {
+      return;
+    }
 
     // Small delay to ensure DOM is ready
     const timer = setTimeout(() => {
@@ -34,6 +53,11 @@ export function QRCodeScanner({
         setError(errMsg);
         setIsScanning(false);
         onError?.(errMsg);
+        return;
+      }
+
+      // Don't start if already detected
+      if (detectedRef.current) {
         return;
       }
 
@@ -122,9 +146,13 @@ export function QRCodeScanner({
               return;
             }
 
+            // Mark as detected to prevent restart
+            detectedRef.current = true;
+            
             // Stop scanning immediately when QR code is detected (both correct and wrong)
             html5QrCode.stop().catch(() => {});
             setIsScanning(false);
+            scannerRef.current = null;
             
             // Trigger callback with detected ID (ScanScreen will handle validation and show appropriate dialog)
             onDetect(detectedId);
@@ -179,7 +207,7 @@ export function QRCodeScanner({
           });
       }
     };
-  }, [active, targetStationId, onDetect, onError]);
+  }, [active, targetStationId]); // Removed onDetect and onError from dependencies to prevent restart
 
   if (!active) {
     return null;

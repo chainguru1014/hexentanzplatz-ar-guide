@@ -21,6 +21,7 @@ export function ScanScreen() {
   const [status, setStatus] = useState<"idle" | "scanning" | "scanned" | "wrong">("scanning");
   const [error, setError] = useState<string | null>(null);
   const [detectedStationId, setDetectedStationId] = useState<StationId | null>(null);
+  const [scannerKey, setScannerKey] = useState(0); // Key to force remount scanner on retry
   const goToMap = useAppStore((s) => s.goToMap);
 
   // Start Mattercraft QR scan if available
@@ -103,6 +104,8 @@ export function ScanScreen() {
     setError(null);
     setDetectedStationId(null);
     setStatus("scanning");
+    // Force remount of QRCodeScanner by changing key
+    setScannerKey(prev => prev + 1);
   };
 
   return (
@@ -135,6 +138,7 @@ export function ScanScreen() {
         padding: 0,
       }}>
         <QRCodeScanner
+          key={scannerKey}
           onDetect={handleQRDetect}
           onError={(err) => setError(err)}
           active={status === "scanning"}
