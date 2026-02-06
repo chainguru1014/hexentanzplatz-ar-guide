@@ -25,13 +25,86 @@ export function QRCodeScanner({
   useEffect(() => {
     if (!active || !containerRef.current) return;
 
-    const scannerId = "qr-reader";
-    const html5QrCode = new Html5Qrcode(scannerId);
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      const scannerId = "qr-reader";
+      const element = document.getElementById(scannerId);
+      if (!element) {
+        const errMsg = "QR-Scanner-Element nicht gefunden.";
+        setError(errMsg);
+        setIsScanning(false);
+        onError?.(errMsg);
+        return;
+      }
 
-    const startScanning = async () => {
+      const html5QrCode = new Html5Qrcode(scannerId);
+
+      const startScanning = async () => {
       try {
+        // Check if mediaDevices API is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          const errMsg = "Kamera-API nicht verfügbar. Bitte verwenden Sie einen modernen Browser.";
+          setError(errMsg);
+          setIsScanning(false);
+          onError?.(errMsg);
+          return;
+        }
+
+        // Check if we're in a secure context (HTTPS required for camera)
+        const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isSecure) {
+          const errMsg = "Kamera-Zugriff erfordert HTTPS. Bitte verwenden Sie eine sichere Verbindung (https://).";
+          setError(errMsg);
+          setIsScanning(false);
+          onError?.(errMsg);
+          return;
+        }
+
+        // Check camera permissions and availability
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          // If we got the stream, stop it immediately - we just wanted to check permissions
+          stream.getTracks().forEach(track => track.stop());
+        } catch (permErr: any) {
+          let errMsg = "Kamera-Zugriff verweigert. Bitte erlauben Sie den Kamera-Zugriff in den Browsereinstellungen.";
+          if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
+            errMsg = "Kamera-Zugriff verweigert. Bitte erlauben Sie den Kamera-Zugriff in den Browsereinstellungen.";
+          } else if (permErr.name === 'NotFoundError' || permErr.name === 'DevicesNotFoundError') {
+            errMsg = "Keine Kamera gefunden. Bitte stellen Sie sicher, dass eine Kamera verfügbar ist.";
+          } else if (permErr.name === 'NotReadableError' || permErr.name === 'TrackStartError') {
+            errMsg = "Kamera wird bereits von einer anderen Anwendung verwendet.";
+          } else if (permErr.name === 'OverconstrainedError' || permErr.name === 'ConstraintNotSatisfiedError') {
+            errMsg = "Kamera-Anforderungen können nicht erfüllt werden. Versuchen Sie eine andere Kamera.";
+          } else {
+            errMsg = `Kamera-Fehler: ${permErr.message || permErr.name}`;
+          }
+          setError(errMsg);
+          setIsScanning(false);
+          onError?.(errMsg);
+          return;
+        }
+
+        // Try to get available cameras
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras.length === 0) {
+          const errMsg = "Keine Kamera gefunden. Bitte stellen Sie sicher, dass eine Kamera verfügbar ist.";
+          setError(errMsg);
+          setIsScanning(false);
+          onError?.(errMsg);
+          return;
+        }
+
+        // Prefer back camera (environment), fallback to first available
+        let cameraId: string | { facingMode: string } = { facingMode: "environment" };
+        const backCamera = cameras.find(cam => cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear'));
+        if (backCamera) {
+          cameraId = backCamera.id;
+        } else if (cameras.length > 0) {
+          cameraId = cameras[0].id;
+        }
+
         await html5QrCode.start(
-          { facingMode: "environment" },
+          cameraId,
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
@@ -76,17 +149,36 @@ export function QRCodeScanner({
         scannerRef.current = html5QrCode;
         setIsScanning(true);
         setError(null);
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : "Failed to start QR scanner";
+      } catch (err: any) {
+        let errMsg = "Fehler beim Starten des QR-Scanners.";
+        if (err.message) {
+          errMsg = err.message;
+        } else if (err.name) {
+          errMsg = `Kamera-Fehler: ${err.name}`;
+        }
+        
+        // Provide more specific error messages
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          errMsg = "Kamera-Zugriff verweigert. Bitte erlauben Sie den Kamera-Zugriff in den Browsereinstellungen.";
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          errMsg = "Keine Kamera gefunden. Bitte stellen Sie sicher, dass eine Kamera verfügbar ist.";
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          errMsg = "Kamera wird bereits von einer anderen Anwendung verwendet.";
+        } else if (err.message) {
+          errMsg = err.message;
+        }
+        
         setError(errMsg);
         setIsScanning(false);
         onError?.(errMsg);
       }
     };
 
-    startScanning();
+      startScanning();
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (scannerRef.current) {
         scannerRef.current
           .stop()

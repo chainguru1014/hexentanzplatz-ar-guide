@@ -37,6 +37,51 @@ This runs `next build` and then flattens the `out/` tree into **`out-flat/`** wi
 
 ---
 
+## Deployment (VPS/Production)
+
+### ⚠️ **CRITICAL: HTTPS Required for Camera Access**
+
+**The QR code scanner requires HTTPS to access the device camera.** Browsers block camera access on non-secure (HTTP) connections for security reasons.
+
+**To deploy on your VPS:**
+
+1. **Set up HTTPS** using one of these methods:
+   - **Let's Encrypt (Free SSL)**: Use Certbot to get free SSL certificates
+   - **Nginx reverse proxy**: Configure Nginx with SSL certificates
+   - **Cloudflare**: Use Cloudflare's free SSL proxy
+
+2. **Example Nginx configuration:**
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name your-domain.com;
+       
+       ssl_certificate /path/to/cert.pem;
+       ssl_certificate_key /path/to/key.pem;
+       
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+3. **Build and run:**
+   ```bash
+   npm run build
+   npm start
+   # or use PM2 for process management
+   pm2 start npm --name "hexentanzplatz-ar" -- start
+   ```
+
+**Without HTTPS, users will see "Failed to start QR scanner" errors on mobile devices.**
+
+---
+
 ## Where to integrate Mattercraft
 
 ### Option A (recommended): Mattercraft hosts the AR runtime, React hosts UI/state

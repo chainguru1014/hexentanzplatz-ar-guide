@@ -181,17 +181,49 @@ export function ScanScreen() {
           )}
           
           {error && (
-            <p style={{
-              color: "#ff4444",
-              fontSize: 12,
+            <div style={{
               margin: "0 0 16px 0",
-              textAlign: "center",
-              padding: 8,
-              background: "rgba(255, 68, 68, 0.1)",
-              borderRadius: 8,
             }}>
-              {error}
-            </p>
+              <p style={{
+                color: "#ff4444",
+                fontSize: 12,
+                margin: "0 0 8px 0",
+                textAlign: "center",
+                padding: 12,
+                background: "rgba(255, 68, 68, 0.15)",
+                borderRadius: 8,
+                border: "1px solid rgba(255, 68, 68, 0.3)",
+              }}>
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setStatus("scanning");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 20px",
+                  background: "rgba(102, 126, 234, 0.8)",
+                  border: "1px solid rgba(102, 126, 234, 1)",
+                  borderRadius: 8,
+                  color: "white",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = "rgba(102, 126, 234, 1)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = "rgba(102, 126, 234, 0.8)";
+                }}
+              >
+                Erneut versuchen
+              </button>
+            </div>
           )}
 
           <button
