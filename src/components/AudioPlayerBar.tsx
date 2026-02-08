@@ -10,6 +10,10 @@ export type AudioPlayerBarProps = {
   onEnded?: () => void;
   className?: string;
   syncWithMattercraft?: boolean;
+  onCaptionClick?: () => void;
+  showCaptionButton?: boolean;
+  captionOpen?: boolean;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
 };
 
 function formatTime(sec: number): string {
@@ -25,6 +29,10 @@ export function AudioPlayerBar({
   onEnded,
   className = "",
   syncWithMattercraft = true,
+  onCaptionClick,
+  showCaptionButton = false,
+  captionOpen = false,
+  onTimeUpdate,
 }: AudioPlayerBarProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -35,31 +43,39 @@ export function AudioPlayerBar({
   const updateTime = useCallback(() => {
     const el = audioRef.current;
     if (!el) return;
-    setCurrentTime(el.currentTime);
-    if (Number.isFinite(el.duration) && !Number.isNaN(el.duration)) {
-      setDuration(el.duration);
+    const newCurrentTime = el.currentTime;
+    const newDuration = Number.isFinite(el.duration) && !Number.isNaN(el.duration) ? el.duration : 0;
+    setCurrentTime(newCurrentTime);
+    if (newDuration > 0) {
+      setDuration(newDuration);
     }
-  }, []);
+    onTimeUpdate?.(newCurrentTime, newDuration);
+  }, [onTimeUpdate]);
 
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    const onTimeUpdate = () => setCurrentTime(el.currentTime);
-    const onDurationChange = () =>
-      setDuration(Number.isFinite(el.duration) ? el.duration : 0);
+    const onTimeUpdateEvent = () => {
+      updateTime();
+    };
+    const onDurationChange = () => {
+      const newDuration = Number.isFinite(el.duration) ? el.duration : 0;
+      setDuration(newDuration);
+      onTimeUpdate?.(el.currentTime, newDuration);
+    };
     const onEnd = () => {
       setPlaying(false);
       onEnded?.();
     };
-    el.addEventListener("timeupdate", onTimeUpdate);
+    el.addEventListener("timeupdate", onTimeUpdateEvent);
     el.addEventListener("durationchange", onDurationChange);
     el.addEventListener("ended", onEnd);
     return () => {
-      el.removeEventListener("timeupdate", onTimeUpdate);
+      el.removeEventListener("timeupdate", onTimeUpdateEvent);
       el.removeEventListener("durationchange", onDurationChange);
       el.removeEventListener("ended", onEnd);
     };
-  }, [onEnded]);
+  }, [onEnded, updateTime, onTimeUpdate]);
 
   const togglePlay = () => {
     const el = audioRef.current;
@@ -139,6 +155,9 @@ export function AudioPlayerBar({
         }
         if (el && dur > 0 && Math.abs(el.duration - dur) > 0.1) {
           setDuration(dur);
+          onTimeUpdate?.(time, dur);
+        } else {
+          onTimeUpdate?.(time, dur);
         }
       }
     });
@@ -165,6 +184,21 @@ export function AudioPlayerBar({
           <span className="audio-player-bar__icon audio-player-bar__icon--play" />
         )}
       </button>
+      {showCaptionButton && (
+        <button
+          type="button"
+          className="audio-player-bar__btn audio-player-bar__btn--caption"
+          onClick={onCaptionClick}
+          aria-label={captionOpen ? "Untertitel schließen" : "Untertitel anzeigen"}
+          style={{
+            marginLeft: 8,
+            fontSize: 18,
+            padding: "8px 12px",
+          }}
+        >
+          {captionOpen ? "✕" : "📝"}
+        </button>
+      )}
       <div className="audio-player-bar__progress-wrap">
         <input
           type="range"

@@ -44,10 +44,18 @@ export function MapScreen() {
   };
 
   return (
-    <div className="map-screen-full">
+    <div className="map-screen-full" style={{
+      position: "fixed",
+      inset: 0,
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+    }}>
       <div
         className="map-screen-full__bg map-screen-full__bg--image"
         style={{
+          position: "absolute",
+          inset: 0,
           backgroundImage: "url(/images/map-bg.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -59,22 +67,40 @@ export function MapScreen() {
         nextStationId={nextStationId}
         maxStations={5}
       />
-      <div className="map-screen-full__footer">
+      <div className="map-screen-full__footer" style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: "20px 24px 24px",
+        paddingBottom: "max(24px, env(safe-area-inset-bottom))",
+        background: "linear-gradient(to top, rgba(11,15,26,.95), transparent)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        textAlign: "center",
+        width: "100%",
+        boxSizing: "border-box",
+        zIndex: 10,
+      }}>
         <div style={{
-          position: "relative",
           width: "100%",
+          maxWidth: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}>
           <p className="map-screen-full__instruction" style={{
             margin: "0 0 12px 0",
             padding: "12px 16px",
             background: "rgba(0, 0, 0, 0.7)",
-            // borderRadius: 8,
             color: "white",
             fontSize: 14,
             lineHeight: 1.4,
             textAlign: "center",
-            maxWidth: '100%',
             width: "100%",
+            maxWidth: "100%",
             boxSizing: "border-box",
           }}>
             Begib Dich zum rot leuchtenden Kreis. Die Tour startet automatisch, wenn du den Punkt erreicht hast.
@@ -85,6 +111,7 @@ export function MapScreen() {
             onClick={handleMapButton}
             style={{
               width: "100%",
+              maxWidth: "100%",
             }}
           >
             Zielpunkt erreicht

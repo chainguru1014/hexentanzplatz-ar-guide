@@ -98,8 +98,8 @@ button{
 .start-screen {
   position: relative;
   min-height: 100vh;
-  margin: -24px;
-  padding: 24px;
+  /* margin: -24px;
+  padding: 24px; */
 }
 .start-bg {
   position: absolute;
@@ -298,7 +298,7 @@ button{
 .map-screen-full {
   position: relative;
   min-height: 100vh;
-  margin: -24px;
+  /* margin: -24px; */
 }
 .map-screen-full__bg {
   position: absolute;

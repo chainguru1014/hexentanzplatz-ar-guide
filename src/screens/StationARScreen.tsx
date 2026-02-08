@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AudioPlayerBar } from "@/components/AudioPlayerBar";
 import { StationDialog } from "@/components/StationDialog";
+import { CaptionOverlay } from "@/components/CaptionOverlay";
 import { ArViewport } from "@/features/ar/ArViewport";
 import { stations } from "@/stations/stations";
 import { useAppStore } from "@/state/store";
@@ -30,6 +31,9 @@ export function StationARScreen() {
     [stationId]
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [captionOpen, setCaptionOpen] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const unlockStation = useAppStore((s) => s.unlockStation);
 
@@ -46,6 +50,15 @@ export function StationARScreen() {
 
   const handleMehrErfahren = () => {
     setDialogOpen(true);
+  };
+
+  const handleCaptionToggle = () => {
+    setCaptionOpen(!captionOpen);
+  };
+
+  const handleTimeUpdate = (currentTime: number, duration: number) => {
+    setAudioCurrentTime(currentTime);
+    setAudioDuration(duration);
   };
 
   const handleSpecialButton = (skipNext: boolean = false) => {
@@ -113,7 +126,7 @@ export function StationARScreen() {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 10,
+        zIndex: 200, // Higher than caption overlay to ensure buttons are clickable
         background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
         padding: "24px 16px 16px",
       }}>
@@ -127,7 +140,14 @@ export function StationARScreen() {
           {station.title}
         </h2>
         <div className="station-ar-screen__audio" style={{ marginBottom: 16 }}>
-          <AudioPlayerBar src={audioFile} syncWithMattercraft={true} />
+          <AudioPlayerBar 
+            src={audioFile} 
+            syncWithMattercraft={true}
+            showCaptionButton={!!station.dialogContent}
+            captionOpen={captionOpen}
+            onCaptionClick={handleCaptionToggle}
+            onTimeUpdate={handleTimeUpdate}
+          />
         </div>
         <div className="station-ar-screen__actions" style={{
           display: "flex",
@@ -198,6 +218,16 @@ export function StationARScreen() {
         <StationDialog
           station={station}
           onClose={() => setDialogOpen(false)}
+        />
+      )}
+
+      {/* Caption Overlay */}
+      {captionOpen && station.dialogContent && (
+        <CaptionOverlay
+          script={station.dialogContent}
+          currentTime={audioCurrentTime}
+          duration={audioDuration}
+          onClose={() => setCaptionOpen(false)}
         />
       )}
     </div>
