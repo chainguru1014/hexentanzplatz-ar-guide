@@ -15,9 +15,18 @@ export function StartScreen() {
   const bottomPadding = useBottomSafeArea();
 
   const handleReady = () => {
-    unlockTour();
-    setCurrentStation("s00" as any);
-    router.push("/map");
+    try {
+      unlockTour();
+      setCurrentStation("s00" as any);
+      // Use setTimeout to ensure state updates complete before navigation
+      setTimeout(() => {
+        router.push("/map");
+      }, 0);
+    } catch (error) {
+      console.error("Error in handleReady:", error);
+      // Fallback: try navigation anyway
+      router.push("/map");
+    }
   };
 
   const handleInfo = () => {
@@ -40,7 +49,7 @@ export function StartScreen() {
       justifyContent: "flex-end",
       alignItems: "center",
       padding: 24,
-      paddingBottom: `${24 + bottomPadding}px`,
+      paddingBottom: `${Math.max(40, 24 + bottomPadding)}px`,
     }}>
       {/* Content and buttons at bottom */}
       <div style={{
@@ -49,6 +58,9 @@ export function StartScreen() {
         display: "flex",
         flexDirection: "column",
         gap: 24,
+        position: "relative",
+        zIndex: 10,
+        pointerEvents: "auto",
       }}>
         {/* Body text */}
         <p style={{
@@ -73,7 +85,11 @@ export function StartScreen() {
         }}>
         <button
           type="button"
-          onClick={handleReady}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleReady();
+          }}
           style={{
             flex: 1,
             padding: "16px 24px",
@@ -86,6 +102,9 @@ export function StartScreen() {
             cursor: "pointer",
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             transition: "transform 0.2s, box-shadow 0.2s",
+            position: "relative",
+            zIndex: 10,
+            pointerEvents: "auto",
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = "translateY(-2px)";
@@ -94,6 +113,14 @@ export function StartScreen() {
           onMouseOut={(e) => {
             e.currentTarget.style.transform = "translateY(0)";
             e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleReady();
           }}
         >
           Ja, ich bin bereit!

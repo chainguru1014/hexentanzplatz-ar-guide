@@ -10,22 +10,44 @@ export function useIsMobile(): boolean {
 
   useEffect(() => {
     const checkMobile = () => {
-      // Check for touch capability and screen size
+      // Check for touch capability
       const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isSmallScreen = window.innerWidth <= 768;
-      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      
+      // Check screen size
+      const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 1024;
+      
+      // Check user agent for mobile devices
+      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(
         navigator.userAgent
       );
       
-      // Real mobile device: has touch AND (small screen OR mobile user agent)
-      const mobile = hasTouch && (isSmallScreen || isMobileUserAgent);
+      // Check if running in standalone mode (PWA on mobile)
+      const isStandalone = (window.navigator as any).standalone === true || 
+                          window.matchMedia('(display-mode: standalone)').matches;
+      
+      // Real mobile device detection:
+      // 1. Has touch capability AND (small screen OR mobile user agent)
+      // 2. OR is in standalone mode (PWA)
+      // 3. OR has mobile user agent (most reliable)
+      const mobile = isMobileUserAgent || (hasTouch && isSmallScreen) || isStandalone;
       
       setIsMobile(mobile);
     };
 
+    // Check immediately
     checkMobile();
+    
+    // Also check after a delay to catch cases where user agent isn't immediately available
+    const timeout = setTimeout(checkMobile, 100);
+    
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener('orientationchange', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('orientationchange', checkMobile);
+      clearTimeout(timeout);
+    };
   }, []);
 
   return isMobile;

@@ -256,6 +256,9 @@ export function ScanScreen() {
           {status === "wrong" && error && (
             <div style={{
               margin: "0 0 16px 0",
+              position: "relative",
+              zIndex: 100,
+              pointerEvents: "auto",
             }}>
               <div style={{
                 padding: 16,
@@ -263,6 +266,8 @@ export function ScanScreen() {
                 borderRadius: 12,
                 border: "2px solid rgba(255, 68, 68, 0.5)",
                 textAlign: "center",
+                position: "relative",
+                zIndex: 101,
               }}>
                 <p style={{
                   color: "#ff4444",
@@ -282,7 +287,11 @@ export function ScanScreen() {
                 </p>
                 <button
                   type="button"
-                  onClick={handleRetry}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRetry();
+                  }}
                   style={{
                     width: "100%",
                     padding: "14px 24px",
@@ -295,6 +304,9 @@ export function ScanScreen() {
                     cursor: "pointer",
                     transition: "all 0.2s",
                     boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    position: "relative",
+                    zIndex: 100,
+                    pointerEvents: "auto",
                   }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.transform = "translateY(-2px)";
@@ -303,6 +315,14 @@ export function ScanScreen() {
                   onMouseOut={(e) => {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRetry();
                   }}
                 >
                   Erneut versuchen
