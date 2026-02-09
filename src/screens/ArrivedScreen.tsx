@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { StationId } from "@/stations/stations";
+import { useBottomSafeArea } from "@/hooks/useIsMobile";
 
 /**
  * Arrived page shown after successful QR scan.
@@ -13,6 +14,7 @@ export function ArrivedScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stationParam = searchParams.get("station");
+  const bottomPadding = useBottomSafeArea();
   const stationId = useMemo(() => {
     if (!stationParam) return "s01" as StationId;
     return stationParam as StationId;
@@ -47,7 +49,7 @@ export function ArrivedScreen() {
       justifyContent: "flex-end",
       alignItems: "center",
       padding: 24,
-      paddingBottom: 40,
+      paddingBottom: `${Math.max(80, 40 + bottomPadding)}px`, // Move button up more, especially on mobile
       overflow: "hidden",
     }}>
       {/* Background image with error handling */}
@@ -65,35 +67,50 @@ export function ArrivedScreen() {
           zIndex: 0,
         }}
       />
-      <div style={{ position: "relative", zIndex: 1 }}>
-      <button
-        type="button"
-        onClick={handleStart}
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          padding: "16px 24px",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          color: "white",
-          border: "none",
-          borderRadius: 12,
-          fontSize: 18,
-          fontWeight: 600,
-          cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          transition: "transform 0.2s, box-shadow 0.2s",
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = "translateY(-2px)";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-        }}
-      >
-        Erlebnis starten
-      </button>
+      <div style={{ 
+        position: "relative", 
+        zIndex: 1,
+        width: "100%",
+        maxWidth: 400,
+      }}>
+        <button
+          type="button"
+          onClick={handleStart}
+          style={{
+            width: "100%",
+            padding: "16px 24px",
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
+            border: "none",
+            borderRadius: 12,
+            fontSize: 18,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+            position: "relative",
+            zIndex: 10,
+            pointerEvents: "auto",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleStart();
+          }}
+        >
+          Erlebnis starten
+        </button>
       </div>
     </div>
   );
