@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { StationMap } from "@/components/StationMap";
 import { useAppStore, getNextStationId } from "@/state/store";
 import type { StationId } from "@/stations/stations";
+import { useBottomSafeArea } from "@/hooks/useIsMobile";
 
 /**
  * Map (2nd page). Background = public/images/map-bg.jpg
@@ -17,6 +18,7 @@ export function MapScreen() {
   const toParam = searchParams.get("to");
   const currentStationId = useAppStore((s) => s.currentStationId);
   const unlockedStations = useAppStore((s) => s.unlockedStations);
+  const bottomPadding = useBottomSafeArea();
   
   // Handle position 0 (start position) - target is station 1
   // If 'to' parameter is provided (from QR scan), use it as current and advance to next
@@ -73,7 +75,7 @@ export function MapScreen() {
         left: 0,
         right: 0,
         padding: "20px 24px",
-        paddingBottom: `max(24px, calc(24px + env(safe-area-inset-bottom)))`,
+        paddingBottom: `${24 + bottomPadding}px`,
         background: "linear-gradient(to top, rgba(11,15,26,.95), transparent)",
         display: "flex",
         flexDirection: "column",

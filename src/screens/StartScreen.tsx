@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/state/store";
+import { useBottomSafeArea } from "@/hooks/useIsMobile";
 
 /**
  * First welcome page with P_01_2.png background.
@@ -11,6 +12,7 @@ export function StartScreen() {
   const router = useRouter();
   const unlockTour = useAppStore((s) => s.unlockTour);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
+  const bottomPadding = useBottomSafeArea();
 
   const handleReady = () => {
     unlockTour();
@@ -38,7 +40,7 @@ export function StartScreen() {
       justifyContent: "flex-end",
       alignItems: "center",
       padding: 24,
-      paddingBottom: `max(40px, calc(24px + env(safe-area-inset-bottom)))`,
+      paddingBottom: `${24 + bottomPadding}px`,
     }}>
       {/* Content and buttons at bottom */}
       <div style={{

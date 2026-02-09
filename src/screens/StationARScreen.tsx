@@ -12,6 +12,7 @@ import { useAppStore } from "@/state/store";
 import { getNextStationId } from "@/state/store";
 import { mcLoadStation, mcSetMode } from "@/lib/mcBridge";
 import type { StationId } from "@/stations/stations";
+import { useBottomSafeArea } from "@/hooks/useIsMobile";
 
 /**
  * Station AR page with audio, dialog, and navigation buttons.
@@ -35,6 +36,7 @@ export function StationARScreen() {
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const mainAudioRef = useRef<AudioPlayerBarRef>(null);
+  const bottomPadding = useBottomSafeArea();
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const unlockStation = useAppStore((s) => s.unlockStation);
 
@@ -138,7 +140,7 @@ export function StationARScreen() {
         zIndex: 200, // Higher than caption overlay to ensure buttons are clickable
         background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
         padding: "24px 16px",
-        paddingBottom: `max(16px, calc(16px + env(safe-area-inset-bottom)))`,
+        paddingBottom: `${16 + bottomPadding}px`,
       }}>
         <h2 className="station-ar-screen__title" style={{
           color: "white",

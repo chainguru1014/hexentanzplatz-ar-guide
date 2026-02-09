@@ -7,6 +7,7 @@ import { AudioPlayerBar } from "@/components/AudioPlayerBar";
 import { stations } from "@/stations/stations";
 import { useAppStore } from "@/state/store";
 import { mcLoadStation, mcSetMode } from "@/lib/mcBridge";
+import { useBottomSafeArea } from "@/hooks/useIsMobile";
 
 /**
  * Intro AR: 1 character (Mephisto or Frigg) in AR.
@@ -22,6 +23,7 @@ export function IntroARScreen() {
   );
   const unlockTour = useAppStore((s) => s.unlockTour);
   const unlockStation = useAppStore((s) => s.unlockStation);
+  const bottomPadding = useBottomSafeArea();
 
   useEffect(() => {
     unlockTour();
@@ -130,7 +132,7 @@ export function IntroARScreen() {
         left: 0,
         right: 0,
         padding: "16px 24px",
-        paddingBottom: `max(16px, calc(16px + env(safe-area-inset-bottom)))`,
+        paddingBottom: `${16 + bottomPadding}px`,
         background: "white",
         borderTop: "1px solid #e0e0e0",
         zIndex: 100,
