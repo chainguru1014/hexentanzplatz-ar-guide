@@ -1,6 +1,7 @@
 "use client";
 
-import { AudioPlayerBar } from "@/components/AudioPlayerBar";
+import { useRef, useEffect } from "react";
+import { AudioPlayerBar, type AudioPlayerBarRef } from "@/components/AudioPlayerBar";
 import { formatDialogContent } from "@/utils/formatDialog";
 import type { Station } from "@/stations/stations";
 
@@ -13,6 +14,17 @@ export function StationDialog({ station, onClose }: StationDialogProps) {
   // Use dialogContent from station if available
   const dialogContent = station.dialogContent || "";
   const dialogAudio = station.dialogAudio;
+  const dialogAudioRef = useRef<AudioPlayerBarRef>(null);
+
+  // Pause dialog audio when dialog closes
+  useEffect(() => {
+    return () => {
+      // Cleanup: pause dialog audio when component unmounts (dialog closes)
+      if (dialogAudioRef.current?.isPlaying()) {
+        dialogAudioRef.current.pause();
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -88,7 +100,7 @@ export function StationDialog({ station, onClose }: StationDialogProps) {
           )}
           {dialogAudio && (
             <div style={{ marginTop: 16, padding: 12, background: "#4caf50", borderRadius: 8 }}>
-              <AudioPlayerBar src={dialogAudio} syncWithMattercraft={true} />
+              <AudioPlayerBar ref={dialogAudioRef} src={dialogAudio} syncWithMattercraft={true} />
             </div>
           )}
         </div>

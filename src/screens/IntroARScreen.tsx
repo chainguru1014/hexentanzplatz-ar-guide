@@ -130,6 +130,7 @@ export function IntroARScreen() {
         left: 0,
         right: 0,
         padding: "16px 24px",
+        paddingBottom: `max(16px, calc(16px + env(safe-area-inset-bottom)))`,
         background: "white",
         borderTop: "1px solid #e0e0e0",
         zIndex: 100,

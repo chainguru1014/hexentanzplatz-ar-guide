@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { AudioPlayerBar } from "@/components/AudioPlayerBar";
+import { AudioPlayerBar, type AudioPlayerBarRef } from "@/components/AudioPlayerBar";
 import { StationDialog } from "@/components/StationDialog";
 import { CaptionOverlay } from "@/components/CaptionOverlay";
 import { ArViewport } from "@/features/ar/ArViewport";
@@ -34,6 +34,7 @@ export function StationARScreen() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const mainAudioRef = useRef<AudioPlayerBarRef>(null);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const unlockStation = useAppStore((s) => s.unlockStation);
 
@@ -49,7 +50,15 @@ export function StationARScreen() {
   }, [stationId]);
 
   const handleMehrErfahren = () => {
+    // Pause main audio when dialog opens
+    if (mainAudioRef.current?.isPlaying()) {
+      mainAudioRef.current.pause();
+    }
     setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
   };
 
   const handleCaptionToggle = () => {
@@ -128,7 +137,8 @@ export function StationARScreen() {
         right: 0,
         zIndex: 200, // Higher than caption overlay to ensure buttons are clickable
         background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
-        padding: "24px 16px 16px",
+        padding: "24px 16px",
+        paddingBottom: `max(16px, calc(16px + env(safe-area-inset-bottom)))`,
       }}>
         <h2 className="station-ar-screen__title" style={{
           color: "white",
@@ -141,6 +151,7 @@ export function StationARScreen() {
         </h2>
         <div className="station-ar-screen__audio" style={{ marginBottom: 16 }}>
           <AudioPlayerBar 
+            ref={mainAudioRef}
             src={audioFile} 
             syncWithMattercraft={true}
             showCaptionButton={!!station.dialogContent}
@@ -217,7 +228,7 @@ export function StationARScreen() {
       {dialogOpen && (
         <StationDialog
           station={station}
-          onClose={() => setDialogOpen(false)}
+          onClose={handleDialogClose}
         />
       )}
 

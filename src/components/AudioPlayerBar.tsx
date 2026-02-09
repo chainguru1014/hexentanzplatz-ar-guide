@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { mcPlayAudio, mcPauseAudio, mcSeekAudio, onMcAudioPlay, onMcAudioPause, onMcAudioProgress } from "@/lib/mcBridge";
 
 export type AudioPlayerBarProps = {
@@ -16,13 +16,19 @@ export type AudioPlayerBarProps = {
   onTimeUpdate?: (currentTime: number, duration: number) => void;
 };
 
+export type AudioPlayerBarRef = {
+  pause: () => void;
+  play: () => void;
+  isPlaying: () => boolean;
+};
+
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function AudioPlayerBar({
+export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>(({
   src,
   onPlay,
   onPause,
@@ -33,12 +39,46 @@ export function AudioPlayerBar({
   showCaptionButton = false,
   captionOpen = false,
   onTimeUpdate,
-}: AudioPlayerBarProps) {
+}, ref) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const isSyncingRef = useRef(false);
+
+  // Expose control methods via ref
+  useImperativeHandle(ref, () => ({
+    pause: () => {
+      const el = audioRef.current;
+      if (el && !el.paused) {
+        el.pause();
+        setPlaying(false);
+        onPause?.();
+        if (syncWithMattercraft) {
+          isSyncingRef.current = true;
+          mcPauseAudio();
+          setTimeout(() => { isSyncingRef.current = false; }, 100);
+        }
+      }
+    },
+    play: () => {
+      const el = audioRef.current;
+      if (el && el.paused) {
+        el.play().then(() => {
+          setPlaying(true);
+          onPlay?.();
+          if (syncWithMattercraft) {
+            isSyncingRef.current = true;
+            mcPlayAudio();
+            setTimeout(() => { isSyncingRef.current = false; }, 100);
+          }
+        }).catch(() => {});
+      }
+    },
+    isPlaying: () => {
+      return playing;
+    },
+  }), [playing, onPlay, onPause, syncWithMattercraft]);
 
   const updateTime = useCallback(() => {
     const el = audioRef.current;
@@ -214,4 +254,6 @@ export function AudioPlayerBar({
       </span>
     </div>
   );
-}
+});
+
+AudioPlayerBar.displayName = "AudioPlayerBar";

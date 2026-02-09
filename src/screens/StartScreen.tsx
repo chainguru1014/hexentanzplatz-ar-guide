@@ -38,7 +38,7 @@ export function StartScreen() {
       justifyContent: "flex-end",
       alignItems: "center",
       padding: 24,
-      paddingBottom: 40,
+      paddingBottom: `max(40px, calc(24px + env(safe-area-inset-bottom)))`,
     }}>
       {/* Content and buttons at bottom */}
       <div style={{
