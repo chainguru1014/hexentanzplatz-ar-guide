@@ -106,6 +106,12 @@ export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>
     const onEnd = () => {
       setPlaying(false);
       onEnded?.();
+      // Auto-pause Mattercraft model when audio finishes
+      if (syncWithMattercraft) {
+        isSyncingRef.current = true;
+        mcPauseAudio();
+        setTimeout(() => { isSyncingRef.current = false; }, 100);
+      }
     };
     el.addEventListener("timeupdate", onTimeUpdateEvent);
     el.addEventListener("durationchange", onDurationChange);

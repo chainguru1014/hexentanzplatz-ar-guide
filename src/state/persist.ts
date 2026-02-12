@@ -9,6 +9,12 @@ type Persisted = {
   currentStationId: string;
   unlockedStations?: string[];
   completed: Record<string, boolean>;
+  // Audio state persistence
+  audioState?: {
+    stationId: string;
+    currentTime: number;
+    playing: boolean;
+  };
 };
 
 export function persistNow() {
@@ -20,11 +26,46 @@ export function persistNow() {
       currentStationId: st.currentStationId,
       unlockedStations: st.unlockedStations,
       completed: st.completed as Record<string, boolean>,
+      // Audio state will be persisted separately by StationARScreen
     };
     localStorage.setItem(KEY, JSON.stringify(payload));
   } catch {
     // ignore (private mode etc.)
   }
+}
+
+const AUDIO_STATE_KEY = "hexentanzplatz_audio_state_v1";
+
+export type AudioState = {
+  stationId: string;
+  currentTime: number;
+  playing: boolean;
+};
+
+export function persistAudioState(state: AudioState | null) {
+  try {
+    if (state) {
+      localStorage.setItem(AUDIO_STATE_KEY, JSON.stringify(state));
+    } else {
+      localStorage.removeItem(AUDIO_STATE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function loadAudioState(): AudioState | null {
+  try {
+    const raw = localStorage.getItem(AUDIO_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AudioState;
+    if (parsed.stationId && typeof parsed.currentTime === "number" && typeof parsed.playing === "boolean") {
+      return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 export function loadPersisted() {

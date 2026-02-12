@@ -43,42 +43,91 @@ This runs `next build` and then flattens the `out/` tree into **`out-flat/`** wi
 
 **The QR code scanner requires HTTPS to access the device camera.** Browsers block camera access on non-secure (HTTP) connections for security reasons.
 
-**To deploy on your VPS:**
+### ⚠️ **CRITICAL: WebAssembly MIME Type Configuration**
 
-1. **Set up HTTPS** using one of these methods:
+**Mattercraft AR requires `.wasm` files to be served with the correct MIME type.** Without this, you'll see:
+```
+TypeError: Failed to execute 'compile' on 'WebAssembly': Incorrect response MIME type. Expected 'application/wasm'.
+```
+
+**To fix this:**
+
+#### For Nginx:
+
+1. **Copy the example configuration:**
+   ```bash
+   sudo cp nginx.conf.example /etc/nginx/sites-available/hexentanzplatz-ar
+   ```
+
+2. **Edit the configuration:**
+   ```bash
+   sudo nano /etc/nginx/sites-available/hexentanzplatz-ar
+   ```
+   - Update `root` path to point to your `out/` directory
+   - Update `server_name` with your domain or IP
+
+3. **Enable the site:**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/hexentanzplatz-ar /etc/nginx/sites-enabled/
+   sudo nginx -t  # Test configuration
+   sudo systemctl reload nginx
+   ```
+
+**Key configuration (already in the example):**
+```nginx
+location ~* \.wasm$ {
+    add_header Content-Type application/wasm;
+    add_header Access-Control-Allow-Origin *;
+    expires 1y;
+    access_log off;
+}
+```
+
+#### For Apache:
+
+1. **Copy the example `.htaccess`:**
+   ```bash
+   cp .htaccess.example /var/www/html/.htaccess
+   # Or wherever your web root is
+   ```
+
+2. **Enable required modules:**
+   ```bash
+   sudo a2enmod mime
+   sudo a2enmod headers
+   sudo systemctl restart apache2
+   ```
+
+**Key configuration (already in the example):**
+```apache
+<IfModule mod_mime.c>
+    AddType application/wasm .wasm
+</IfModule>
+```
+
+### Deployment Steps:
+
+1. **Build the project:**
+   ```bash
+   yarn build
+   # or
+   npm run build
+   ```
+
+2. **Upload the `out/` directory to your VPS:**
+   ```bash
+   scp -r out/ user@82.165.217.122:/var/www/hexentanzplatz-ar-guide/
+   ```
+
+3. **Configure your web server** (Nginx or Apache) using the example files above
+
+4. **Set up HTTPS** (recommended for camera access):
    - **Let's Encrypt (Free SSL)**: Use Certbot to get free SSL certificates
    - **Nginx reverse proxy**: Configure Nginx with SSL certificates
    - **Cloudflare**: Use Cloudflare's free SSL proxy
 
-2. **Example Nginx configuration:**
-   ```nginx
-   server {
-       listen 443 ssl;
-       server_name your-domain.com;
-       
-       ssl_certificate /path/to/cert.pem;
-       ssl_certificate_key /path/to/key.pem;
-       
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
-
-3. **Build and run:**
-   ```bash
-   npm run build
-   npm start
-   # or use PM2 for process management
-   pm2 start npm --name "hexentanzplatz-ar" -- start
-   ```
-
 **Without HTTPS, users will see "Failed to start QR scanner" errors on mobile devices.**
+**Without the correct `.wasm` MIME type, the AR experience will fail to load.**
 
 ---
 

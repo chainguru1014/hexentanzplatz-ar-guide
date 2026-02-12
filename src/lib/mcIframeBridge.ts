@@ -32,3 +32,20 @@ export function sendToMattercraftIframe(type: string, payload?: any) {
     return false;
   }
 }
+
+// Extended commands for dual model support (Station 3+)
+export function mcShowModel2() {
+  return sendToMattercraftIframe("MC_SHOW1");
+}
+
+export function mcHideModel2() {
+  return sendToMattercraftIframe("MC_HIDE1");
+}
+
+export function mcPlayModel2() {
+  return sendToMattercraftIframe("MC_PLAY1");
+}
+
+export function mcPauseModel2() {
+  return sendToMattercraftIframe("MC_PAUSE1");
+}

@@ -4,7 +4,7 @@
  * Falls back to postMessage when Mattercraft is in an iframe.
  */
 
-import { sendToMattercraftIframe } from "./mcIframeBridge";
+import { sendToMattercraftIframe, mcShowModel2 as sendShowModel2, mcHideModel2 as sendHideModel2, mcPlayModel2 as sendPlayModel2, mcPauseModel2 as sendPauseModel2 } from "./mcIframeBridge";
 
 declare global {
   interface Window {
@@ -95,6 +95,39 @@ export function mcSeekAudio(time: number): void {
   }
   // Fallback: send postMessage to Mattercraft iframe
   sendToMattercraftIframe("MC_SEEK", { time });
+}
+
+// Extended commands for dual model support (Station 3+)
+export function mcShowModel2(): void {
+  if (window.MC?.showModel2) {
+    window.MC.showModel2();
+    return;
+  }
+  sendShowModel2();
+}
+
+export function mcHideModel2(): void {
+  if (window.MC?.hideModel2) {
+    window.MC.hideModel2();
+    return;
+  }
+  sendHideModel2();
+}
+
+export function mcPlayModel2(): void {
+  if (window.MC?.playModel2) {
+    window.MC.playModel2();
+    return;
+  }
+  sendPlayModel2();
+}
+
+export function mcPauseModel2(): void {
+  if (window.MC?.pauseModel2) {
+    window.MC.pauseModel2();
+    return;
+  }
+  sendPauseModel2();
 }
 
 export function onMcAudioPlay(cb: () => void): () => void {

@@ -10,9 +10,11 @@ import { ArViewport } from "@/features/ar/ArViewport";
 import { stations } from "@/stations/stations";
 import { useAppStore } from "@/state/store";
 import { getNextStationId } from "@/state/store";
-import { mcLoadStation, mcSetMode } from "@/lib/mcBridge";
+import { mcLoadStation, mcSetMode, mcPlayAudio, mcPauseAudio, mcShowModel2, mcHideModel2, mcPlayModel2, mcPauseModel2 } from "@/lib/mcBridge";
 import type { StationId } from "@/stations/stations";
 import { useBottomSafeArea } from "@/hooks/useIsMobile";
+import { parseDialogScript, convertToTimeBasedLines, getSpeakerAtTime, type Speaker } from "@/utils/speakerDetection";
+import { persistAudioState, loadAudioState } from "@/state/persist";
 
 /**
  * Station AR page with audio, dialog, and navigation buttons.
@@ -35,16 +37,125 @@ export function StationARScreen() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [audioPlaying, setAudioPlaying] = useState(false);
   const mainAudioRef = useRef<AudioPlayerBarRef>(null);
   const bottomPadding = useBottomSafeArea();
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const unlockStation = useAppStore((s) => s.unlockStation);
 
-  // Calculate audio file: AR_**_03.mp3 where ** is station id + 1
-  // e.g., s01 -> AR_02_03.mp3, s02 -> AR_03_03.mp3
+  // Station 3+ dual model support
   const stationNum = Number(stationId.slice(1));
-  const audioNum = String(stationNum + 1).padStart(2, '0');
-  const audioFile = `/audio/AR_${audioNum}_03.mp3`;
+  const isStation3Plus = stationNum >= 3;
+  const didShowModel2Ref = useRef(false);
+  const lastSpeakerRef = useRef<Speaker>(null);
+
+  // Parse dialog script for speaker detection (Station 3+)
+  const dialogLines = useMemo(() => {
+    if (!station?.dialogContent || !isStation3Plus) return [];
+    const parsed = parseDialogScript(station.dialogContent);
+    return parsed;
+  }, [station?.dialogContent, isStation3Plus]);
+
+  const timeBasedDialogLines = useMemo(() => {
+    if (dialogLines.length === 0 || audioDuration <= 0) return [];
+    return convertToTimeBasedLines(dialogLines, audioDuration);
+  }, [dialogLines, audioDuration]);
+
+  // Use station's dialogAudio if available, otherwise calculate: AR_**_03.mp3 where ** is station id + 1
+  // e.g., s01 -> AR_02_03.mp3, s02 -> AR_03_03.mp3
+  const audioFile = station?.dialogAudio || (() => {
+    const audioNum = String(stationNum + 1).padStart(2, '0');
+    return `/audio/AR_${audioNum}_03.mp3`;
+  })();
+
+  // Load persisted audio state when station changes
+  useEffect(() => {
+    const savedState = loadAudioState();
+    if (savedState && savedState.stationId === stationId) {
+      // Restore audio state if same station
+      setAudioCurrentTime(savedState.currentTime);
+      setAudioPlaying(savedState.playing);
+      
+      // Restore playing state after a short delay to ensure audio is loaded
+      if (savedState.playing) {
+        setTimeout(() => {
+          if (mainAudioRef.current) {
+            mainAudioRef.current.play();
+          }
+        }, 1000);
+      }
+    } else {
+      // Clear persisted state if different station
+      persistAudioState(null);
+      setAudioCurrentTime(0);
+      setAudioPlaying(false);
+    }
+  }, [stationId]); // When station changes
+
+  // Persist audio state when it changes
+  useEffect(() => {
+    if (audioCurrentTime > 0 || audioPlaying) {
+      persistAudioState({
+        stationId,
+        currentTime: audioCurrentTime,
+        playing: audioPlaying,
+      });
+    }
+  }, [stationId, audioCurrentTime, audioPlaying]);
+
+  // Listen for MC_READY to show model 2 for Station 3+
+  useEffect(() => {
+    if (!isStation3Plus) return;
+
+    const handleMCReady = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (data?.type === "MC_READY" || (data?.type === "MC_STATE" && data?.ready)) {
+        if (!didShowModel2Ref.current) {
+          console.log(`[StationARScreen] Mattercraft ready - Showing model 2 for Station ${stationNum}`);
+          mcShowModel2();
+          didShowModel2Ref.current = true;
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMCReady);
+    return () => window.removeEventListener("message", handleMCReady);
+  }, [isStation3Plus, stationNum]);
+
+  // Station 3+ boot logic: Show 2nd model (also try immediately in case Mattercraft is already ready)
+  useEffect(() => {
+    if (isStation3Plus) {
+      if (!didShowModel2Ref.current) {
+        console.log(`[StationARScreen] Station ${stationNum} (3+): Attempting to show model 2`);
+        // Send MC_SHOW1 command (will work if Mattercraft is ready, otherwise wait for MC_READY)
+        mcShowModel2();
+        // Set a timeout to retry if Mattercraft isn't ready yet
+        const retryTimer = setTimeout(() => {
+          if (!didShowModel2Ref.current) {
+            console.log(`[StationARScreen] Retrying to show model 2 for Station ${stationNum}`);
+            mcShowModel2();
+            didShowModel2Ref.current = true;
+          }
+        }, 2000);
+        return () => clearTimeout(retryTimer);
+      }
+    } else {
+      // Station 1-2: Hide model 2 if it was shown
+      if (didShowModel2Ref.current) {
+        console.log(`[StationARScreen] Station ${stationNum} (1-2): Hiding model 2`);
+        mcHideModel2();
+        mcPauseModel2();
+        didShowModel2Ref.current = false;
+      }
+      lastSpeakerRef.current = null;
+    }
+  }, [stationId, isStation3Plus, stationNum]);
+
+  // Reset didShowModel2Ref when station changes to ensure it shows again
+  useEffect(() => {
+    didShowModel2Ref.current = false;
+  }, [stationId]);
 
   useEffect(() => {
     mcLoadStation(stationId);
@@ -71,6 +182,77 @@ export function StationARScreen() {
     setAudioCurrentTime(currentTime);
     setAudioDuration(duration);
   };
+
+  const handlePlay = () => {
+    setAudioPlaying(true);
+    
+    // Station 3+: Control models based on current speaker
+    if (isStation3Plus && timeBasedDialogLines.length > 0) {
+      const speaker = getSpeakerAtTime(timeBasedDialogLines, audioCurrentTime);
+      console.log(`[StationARScreen] Audio resumed, current speaker: ${speaker}`);
+      
+      if (speaker === "MEPHISTO") {
+        mcPlayAudio();
+        mcPauseModel2();
+      } else if (speaker === "HOLLA") {
+        mcPauseAudio();
+        mcPlayModel2();
+      } else {
+        // No speaker detected, default to model 1
+        mcPlayAudio();
+        mcPauseModel2();
+      }
+      lastSpeakerRef.current = speaker;
+    } else {
+      // Station 1-2: Normal play
+      mcPlayAudio();
+    }
+  };
+
+  const handlePause = () => {
+    setAudioPlaying(false);
+    
+    // Station 3+: Pause both models
+    if (isStation3Plus) {
+      mcPauseAudio();
+      mcPauseModel2();
+    } else {
+      // Station 1-2: Normal pause
+      mcPauseAudio();
+    }
+  };
+
+  // Station 3+ speaker-based model control
+  useEffect(() => {
+    if (!isStation3Plus || !audioPlaying || timeBasedDialogLines.length === 0) {
+      return;
+    }
+
+    const speaker = getSpeakerAtTime(timeBasedDialogLines, audioCurrentTime);
+    
+    if (!speaker) return;
+
+    // Only send commands when speaker changes
+    if (lastSpeakerRef.current === speaker) return;
+    
+    lastSpeakerRef.current = speaker;
+    console.log(`[StationARScreen] Speaker changed to: ${speaker} at time ${audioCurrentTime.toFixed(2)}`);
+
+    if (speaker === "MEPHISTO") {
+      console.log("[StationARScreen] Mephisto speaking: MC_PLAY + MC_PAUSE1");
+      mcPlayAudio();
+      mcPauseModel2();
+    } else if (speaker === "HOLLA") {
+      console.log("[StationARScreen] Holla speaking: MC_PAUSE + MC_PLAY1");
+      mcPauseAudio();
+      mcPlayModel2();
+    }
+  }, [isStation3Plus, audioPlaying, audioCurrentTime, timeBasedDialogLines]);
+
+  // Reset speaker state when station changes
+  useEffect(() => {
+    lastSpeakerRef.current = null;
+  }, [stationId]);
 
   const handleSpecialButton = (skipNext: boolean = false) => {
     // Get current station from store (not from URL) to ensure correct increment
@@ -155,11 +337,25 @@ export function StationARScreen() {
           <AudioPlayerBar 
             ref={mainAudioRef}
             src={audioFile} 
-            syncWithMattercraft={true}
+            syncWithMattercraft={!isStation3Plus} // Don't sync for Station 3+ (we handle it manually)
             showCaptionButton={!!station.dialogContent}
             captionOpen={captionOpen}
             onCaptionClick={handleCaptionToggle}
             onTimeUpdate={handleTimeUpdate}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onEnded={() => {
+              setAudioPlaying(false);
+              // Auto-pause both models when audio ends (Station 3+)
+              if (isStation3Plus) {
+                mcPauseAudio();
+                mcPauseModel2();
+              } else {
+                mcPauseAudio();
+              }
+              // Clear persisted audio state
+              persistAudioState(null);
+            }}
           />
         </div>
         <div className="station-ar-screen__actions" style={{
