@@ -113,6 +113,8 @@ export function ArViewport({
 
     // Send station load command when iframe is ready
     const timer = setTimeout(() => {
+      // Request back camera for AR (environment-facing)
+      sendToMattercraft("MC_USE_BACK_CAMERA", { facingMode: "environment" });
       sendToMattercraft("MC_LOAD_STATION", { stationId: station.id });
       sendToMattercraft("MC_SET_MODE", { mode });
     }, 1000);

@@ -38,6 +38,8 @@ export function StationARScreen() {
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [mattercraftReady, setMattercraftReady] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const mainAudioRef = useRef<AudioPlayerBarRef>(null);
   const bottomPadding = useBottomSafeArea();
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
@@ -61,12 +63,20 @@ export function StationARScreen() {
     return convertToTimeBasedLines(dialogLines, audioDuration);
   }, [dialogLines, audioDuration]);
 
-  // Use station's dialogAudio if available, otherwise calculate: AR_**_03.mp3 where ** is station id + 1
-  // e.g., s01 -> AR_02_03.mp3, s02 -> AR_03_03.mp3
+  // Use station's dialogAudio - it's already correctly configured in stations.ts
   const audioFile = station?.dialogAudio || (() => {
     const audioNum = String(stationNum + 1).padStart(2, '0');
+    // Default pattern: AR_XX_03.mp3 for stations 1-2, AR_XX_3.mp3 for stations 3+
+    if (stationNum >= 3) {
+      return `/audio/AR_${audioNum}_3.mp3`;
+    }
     return `/audio/AR_${audioNum}_03.mp3`;
   })();
+  
+  // Log audio file for debugging
+  useEffect(() => {
+    console.log(`[StationARScreen] Station ${stationId} audio file:`, audioFile);
+  }, [stationId, audioFile]);
 
   // Load persisted audio state when station changes
   useEffect(() => {
@@ -103,16 +113,17 @@ export function StationARScreen() {
     }
   }, [stationId, audioCurrentTime, audioPlaying]);
 
-  // Listen for MC_READY to show model 2 for Station 3+
+  // Listen for MC_READY to enable buttons and show model 2 for Station 3+
   useEffect(() => {
-    if (!isStation3Plus) return;
-
     const handleMCReady = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (data?.type === "MC_READY" || (data?.type === "MC_STATE" && data?.ready)) {
-        if (!didShowModel2Ref.current) {
-          console.log(`[StationARScreen] Mattercraft ready - Showing model 2 for Station ${stationNum}`);
+        console.log(`[StationARScreen] Mattercraft ready for Station ${stationNum}`);
+        setMattercraftReady(true);
+        
+        if (isStation3Plus && !didShowModel2Ref.current) {
+          console.log(`[StationARScreen] Showing model 2 for Station ${stationNum}`);
           mcShowModel2();
           didShowModel2Ref.current = true;
         }
@@ -120,8 +131,23 @@ export function StationARScreen() {
     };
 
     window.addEventListener("message", handleMCReady);
-    return () => window.removeEventListener("message", handleMCReady);
+    
+    // Set a timeout fallback (3 seconds) to enable buttons even if MC_READY doesn't fire
+    const fallbackTimer = setTimeout(() => {
+      console.log(`[StationARScreen] Mattercraft ready fallback (timeout) for Station ${stationNum}`);
+      setMattercraftReady(true);
+    }, 3000); // 3 seconds delay
+    
+    return () => {
+      window.removeEventListener("message", handleMCReady);
+      clearTimeout(fallbackTimer);
+    };
   }, [isStation3Plus, stationNum]);
+  
+  // Reset Mattercraft ready state when station changes
+  useEffect(() => {
+    setMattercraftReady(false);
+  }, [stationId]);
 
   // Station 3+ boot logic: Show 2nd model (also try immediately in case Mattercraft is already ready)
   useEffect(() => {
@@ -368,13 +394,16 @@ export function StationARScreen() {
             type="button" 
             className="btn btnPrimary" 
             onClick={handleMehrErfahren}
+            disabled={isNavigating || !mattercraftReady}
             style={{
               padding: "14px 24px",
               fontSize: 16,
               fontWeight: 600,
+              opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
+              cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
             }}
           >
-            Mehr erfahren!
+            {!mattercraftReady ? "Lädt..." : "Mehr erfahren!"}
           </button>
           
           {/* Special button(s) */}
@@ -383,6 +412,7 @@ export function StationARScreen() {
               type="button" 
               className="btn" 
               onClick={() => handleSpecialButton(false)}
+              disabled={isNavigating || !mattercraftReady}
               style={{
                 padding: "14px 24px",
                 fontSize: 16,
@@ -390,9 +420,11 @@ export function StationARScreen() {
                 background: "rgba(255, 255, 255, 0.2)",
                 color: "white",
                 border: "2px solid rgba(255, 255, 255, 0.5)",
+                opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
+                cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
               }}
             >
-              {station.specialButtonTitle}
+              {!mattercraftReady ? "Lädt..." : station.specialButtonTitle}
             </button>
           )}
           
@@ -405,6 +437,7 @@ export function StationARScreen() {
                   type="button" 
                   className="btn" 
                   onClick={() => handleSpecialButton(index === 1)} // Second button skips next station
+                  disabled={isNavigating || !mattercraftReady}
                   style={{
                     padding: "14px 24px",
                     fontSize: 16,
@@ -412,9 +445,11 @@ export function StationARScreen() {
                     background: "rgba(255, 255, 255, 0.2)",
                     color: "white",
                     border: "2px solid rgba(255, 255, 255, 0.5)",
+                    opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
+                    cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
                   }}
                 >
-                  {title}
+                  {!mattercraftReady ? "Lädt..." : title}
                 </button>
               ))}
             </>

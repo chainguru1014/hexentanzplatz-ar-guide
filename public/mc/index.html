@@ -2,6 +2,62 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+		<script>
+			// Force back camera (environment) for Mattercraft AR
+			// This script MUST run before Mattercraft initializes to intercept all camera requests
+			(function() {
+				// Override getUserMedia to ALWAYS prefer back camera (environment-facing)
+				if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+					const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+					
+					navigator.mediaDevices.getUserMedia = function(constraints) {
+						// Always prefer back camera (environment-facing)
+						if (constraints && constraints.video) {
+							if (typeof constraints.video === 'object') {
+								// Override or add facingMode to environment
+								constraints.video = {
+									...constraints.video,
+									facingMode: 'environment' // Force back camera
+								};
+							} else if (constraints.video === true) {
+								// If video is just true, convert to object with facingMode
+								constraints.video = { facingMode: 'environment' };
+							}
+						} else if (constraints && !constraints.video) {
+							// If no video constraints, add them to request back camera
+							constraints.video = { facingMode: 'environment' };
+						}
+						
+						console.log('[Mattercraft] Requesting camera with constraints (back camera enforced):', JSON.stringify(constraints));
+						return originalGetUserMedia(constraints).catch(err => {
+							console.error('[Mattercraft] Camera request failed:', err);
+							throw err;
+						});
+					};
+				}
+				
+				// Also override enumerateDevices to prefer back camera in device list
+				if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+					const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+					navigator.mediaDevices.enumerateDevices = function() {
+						return originalEnumerateDevices().then(devices => {
+							// Sort devices to put back cameras first
+							return devices.sort((a, b) => {
+								const aIsBack = a.label.toLowerCase().includes('back') || 
+								                a.label.toLowerCase().includes('rear') ||
+								                a.label.toLowerCase().includes('environment');
+								const bIsBack = b.label.toLowerCase().includes('back') || 
+								                b.label.toLowerCase().includes('rear') ||
+								                b.label.toLowerCase().includes('environment');
+								if (aIsBack && !bIsBack) return -1;
+								if (!aIsBack && bIsBack) return 1;
+								return 0;
+							});
+						});
+					};
+				}
+			})();
+		</script>
 		<script src="index.0ef135.js" type="module" async=""></script>
 
 		<style>body,html{padding:0;margin:0;font-family:sans-serif;height:100vh;width:100vw;touch-action:pan-x pan-y;}.splash{background-color:rgb(31, 32, 33);position:fixed;width:100%;height:100%;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}.splash-box{width:304px;max-width:90%;background:rgba(31, 32, 33, 0.78);border-radius:8px;padding:50px 20px 50px 20px;box-sizing:border-box;}.splash-box > h1{font-size:34px;font-weight:700;padding:0;margin:0;color:white;}.splash-highlight{color:#6ae5e0;}.zcomponent-launched .splash{display:none;}#launchButton{background:linear-gradient(94deg, #6be5ad 0%, #53afe4 100.05%);border-radius:8px;border:none;padding:11px 23px;font-size:20px;margin-top:30px;line-height:24px;height:48px;color:black;}#launchButton:disabled{background:none;background-color:none;width:48px;visibility:hidden;padding:0px;}#launchButton:disabled:before{content:' ';visibility:visible;display:block;width:48px;height:48px;margin:0px;border-radius:50%;box-sizing:border-box;border:5px solid #fff;border-color:#fff transparent #fff transparent;animation:loading-animation 1.2s linear infinite;}@keyframes loading-animation{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>

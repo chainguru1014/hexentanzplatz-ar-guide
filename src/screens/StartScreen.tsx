@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/state/store";
 import { useBottomSafeArea } from "@/hooks/useIsMobile";
@@ -13,15 +14,16 @@ export function StartScreen() {
   const unlockTour = useAppStore((s) => s.unlockTour);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const bottomPadding = useBottomSafeArea();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleReady = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     try {
       unlockTour();
       setCurrentStation("s00" as any);
-      // Use setTimeout to ensure state updates complete before navigation
-      setTimeout(() => {
-        router.push("/map");
-      }, 0);
+      // Navigate immediately (non-blocking)
+      router.push("/map");
     } catch (error) {
       console.error("Error in handleReady:", error);
       // Fallback: try navigation anyway
@@ -30,6 +32,8 @@ export function StartScreen() {
   };
 
   const handleInfo = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     unlockTour();
     setCurrentStation("s00" as any);
     router.push("/intro");
@@ -90,6 +94,7 @@ export function StartScreen() {
             e.stopPropagation();
             handleReady();
           }}
+          disabled={isNavigating}
           style={{
             flex: 1,
             padding: "16px 24px",
@@ -99,12 +104,13 @@ export function StartScreen() {
             borderRadius: 12,
             fontSize: 16,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: isNavigating ? "not-allowed" : "pointer",
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             transition: "transform 0.2s, box-shadow 0.2s",
             position: "relative",
             zIndex: 10,
             pointerEvents: "auto",
+            opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = "translateY(-2px)";
@@ -128,6 +134,7 @@ export function StartScreen() {
         <button
           type="button"
           onClick={handleInfo}
+          disabled={isNavigating}
           style={{
             flex: 1,
             padding: "16px 24px",
@@ -137,9 +144,10 @@ export function StartScreen() {
             borderRadius: 12,
             fontSize: 16,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: isNavigating ? "not-allowed" : "pointer",
             backdropFilter: "blur(10px)",
             transition: "background 0.2s, border-color 0.2s",
+            opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";

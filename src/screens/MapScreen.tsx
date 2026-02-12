@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { StationMap } from "@/components/StationMap";
@@ -19,6 +20,7 @@ export function MapScreen() {
   const currentStationId = useAppStore((s) => s.currentStationId);
   const unlockedStations = useAppStore((s) => s.unlockedStations);
   const bottomPadding = useBottomSafeArea();
+  const [isNavigating, setIsNavigating] = useState(false);
   
   // Handle position 0 (start position) - target is station 1
   // If 'to' parameter is provided (from QR scan), use it as current and advance to next
@@ -41,7 +43,9 @@ export function MapScreen() {
   const isAtFirstStation = actualCurrentStationId === "s01" && nextStationId === "s02";
 
   const handleMapButton = () => {
-    // All cases redirect to scan page (including start position)
+    if (isNavigating) return;
+    setIsNavigating(true);
+    // All cases redirect to scan page (including start position) - non-blocking
     router.push(`/scan?expect=${nextStationId}`);
   };
 
@@ -111,12 +115,15 @@ export function MapScreen() {
             type="button"
             className="btn btnPrimary map-screen-full__cta"
             onClick={handleMapButton}
+            disabled={isNavigating}
             style={{
               width: "100%",
               maxWidth: "100%",
+              opacity: isNavigating ? 0.6 : 1,
+              cursor: isNavigating ? "not-allowed" : "pointer",
             }}
           >
-            Zielpunkt erreicht
+            {isNavigating ? "Lädt..." : "Zielpunkt erreicht"}
           </button>
         </div>
       </div>

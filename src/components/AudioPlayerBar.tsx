@@ -63,16 +63,43 @@ export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>
     },
     play: () => {
       const el = audioRef.current;
-      if (el && el.paused) {
-        el.play().then(() => {
-          setPlaying(true);
-          onPlay?.();
-          if (syncWithMattercraft) {
-            isSyncingRef.current = true;
-            mcPlayAudio();
-            setTimeout(() => { isSyncingRef.current = false; }, 100);
+      if (!el) {
+        console.warn("[AudioPlayerBar] Audio element not found in play()");
+        return;
+      }
+      if (el.paused) {
+        // Ensure audio is ready
+        if (el.readyState < 2) {
+          el.addEventListener('canplay', function onCanPlay() {
+            el.removeEventListener('canplay', onCanPlay);
+            el.play().then(() => {
+              setPlaying(true);
+              onPlay?.();
+              if (syncWithMattercraft) {
+                isSyncingRef.current = true;
+                mcPlayAudio();
+                setTimeout(() => { isSyncingRef.current = false; }, 100);
+              }
+            }).catch((err) => {
+              console.error("[AudioPlayerBar] Play failed in play():", err);
+            });
+          }, { once: true });
+          if (el.readyState === 0) {
+            el.load();
           }
-        }).catch(() => {});
+        } else {
+          el.play().then(() => {
+            setPlaying(true);
+            onPlay?.();
+            if (syncWithMattercraft) {
+              isSyncingRef.current = true;
+              mcPlayAudio();
+              setTimeout(() => { isSyncingRef.current = false; }, 100);
+            }
+          }).catch((err) => {
+            console.error("[AudioPlayerBar] Play failed in play():", err);
+          });
+        }
       }
     },
     isPlaying: () => {
@@ -95,6 +122,27 @@ export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
+    
+    // Handle audio loading errors
+    const onError = (e: Event) => {
+      console.error("[AudioPlayerBar] Audio loading error:", e);
+      const error = (e.target as HTMLAudioElement).error;
+      if (error) {
+        console.error("[AudioPlayerBar] Error code:", error.code, "Message:", error.message);
+        if (error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+          console.error("[AudioPlayerBar] Audio format not supported or file not found:", src);
+        }
+      }
+    };
+    
+    // Handle audio loaded
+    const onLoadedData = () => {
+      console.log("[AudioPlayerBar] Audio loaded successfully:", src);
+      const newDuration = Number.isFinite(el.duration) ? el.duration : 0;
+      setDuration(newDuration);
+      onTimeUpdate?.(el.currentTime, newDuration);
+    };
+    
     const onTimeUpdateEvent = () => {
       updateTime();
     };
@@ -116,27 +164,65 @@ export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>
     el.addEventListener("timeupdate", onTimeUpdateEvent);
     el.addEventListener("durationchange", onDurationChange);
     el.addEventListener("ended", onEnd);
+    el.addEventListener("error", onError);
+    el.addEventListener("loadeddata", onLoadedData);
+    
+    // Don't reload here - src is handled in separate useEffect above
+    
     return () => {
       el.removeEventListener("timeupdate", onTimeUpdateEvent);
       el.removeEventListener("durationchange", onDurationChange);
       el.removeEventListener("ended", onEnd);
+      el.removeEventListener("error", onError);
+      el.removeEventListener("loadeddata", onLoadedData);
     };
-  }, [onEnded, updateTime, onTimeUpdate]);
+  }, [onEnded, updateTime, onTimeUpdate, src]);
 
   const togglePlay = () => {
     const el = audioRef.current;
-    if (!el) return;
+    if (!el) {
+      console.warn("[AudioPlayerBar] Audio element not found");
+      return;
+    }
+    
     if (el.paused) {
-      el.play().then(() => {
-        setPlaying(true);
-        onPlay?.();
-        // Sync with Mattercraft
-        if (syncWithMattercraft) {
-          isSyncingRef.current = true;
-          mcPlayAudio();
-          setTimeout(() => { isSyncingRef.current = false; }, 100);
+      // Ensure audio is ready before playing
+      if (el.readyState < 2) {
+        // If audio is not loaded enough, wait for it
+        el.addEventListener('canplay', function onCanPlay() {
+          el.removeEventListener('canplay', onCanPlay);
+          el.play().then(() => {
+            setPlaying(true);
+            onPlay?.();
+            // Sync with Mattercraft
+            if (syncWithMattercraft) {
+              isSyncingRef.current = true;
+              mcPlayAudio();
+              setTimeout(() => { isSyncingRef.current = false; }, 100);
+            }
+          }).catch((err) => {
+            console.error("[AudioPlayerBar] Play failed:", err);
+          });
+        }, { once: true });
+        // Trigger loading if needed
+        if (el.readyState === 0) {
+          el.load();
         }
-      });
+      } else {
+        // Audio is ready, play immediately
+        el.play().then(() => {
+          setPlaying(true);
+          onPlay?.();
+          // Sync with Mattercraft
+          if (syncWithMattercraft) {
+            isSyncingRef.current = true;
+            mcPlayAudio();
+            setTimeout(() => { isSyncingRef.current = false; }, 100);
+          }
+        }).catch((err) => {
+          console.error("[AudioPlayerBar] Play failed:", err);
+        });
+      }
     } else {
       el.pause();
       setPlaying(false);
@@ -214,6 +300,32 @@ export const AudioPlayerBar = forwardRef<AudioPlayerBarRef, AudioPlayerBarProps>
       cleanupProgress();
     };
   }, [syncWithMattercraft, onPlay, onPause]);
+
+  // Track previous src to detect changes
+  const prevSrcRef = useRef<string>('');
+  
+  // Handle src changes without interrupting playback
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !src) return;
+    
+    // Only reload if src actually changed and audio is not playing
+    if (prevSrcRef.current !== src) {
+      prevSrcRef.current = src;
+      
+      // If audio is currently playing, don't reload (let it finish)
+      if (!el.paused) {
+        console.log("[AudioPlayerBar] Src changed while playing, will reload after pause");
+        return;
+      }
+      
+      // Only load if audio hasn't been loaded yet or if src changed
+      // Don't call load() if audio is already loaded, as it causes AbortError
+      if (el.readyState === 0 || (el.src && el.src !== src)) {
+        el.load();
+      }
+    }
+  }, [src]);
 
   return (
     <div className={`audio-player-bar ${className}`.trim()}>

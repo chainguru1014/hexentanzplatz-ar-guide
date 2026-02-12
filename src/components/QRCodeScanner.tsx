@@ -118,22 +118,53 @@ export function QRCodeScanner({
           return;
         }
 
-        // Prefer back camera (environment), fallback to first available
+        // ALWAYS prefer back camera (environment) - required for AR/QR scanning
         let cameraId: string | { facingMode: string } = { facingMode: "environment" };
-        const backCamera = cameras.find(cam => cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear'));
+        
+        // Try to find back camera by ID or label
+        const backCamera = cameras.find(cam => {
+          const label = cam.label.toLowerCase();
+          return label.includes('back') || 
+                 label.includes('rear') || 
+                 label.includes('environment') ||
+                 cam.id.includes('back') ||
+                 cam.id.includes('rear');
+        });
+        
         if (backCamera) {
+          console.log("[QRCodeScanner] Using back camera:", backCamera.label, backCamera.id);
           cameraId = backCamera.id;
-        } else if (cameras.length > 0) {
-          cameraId = cameras[0].id;
+        } else {
+          // If no back camera found by label, try to use facingMode constraint
+          // This will request the environment-facing camera
+          console.log("[QRCodeScanner] No back camera found by label, using facingMode: environment");
+          cameraId = { facingMode: "environment" };
+        }
+
+        // Always use facingMode: "environment" to force back camera
+        const config: any = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        // If we found a specific back camera by ID, use it
+        // Otherwise, use facingMode constraint to request environment-facing camera
+        if (typeof cameraId === 'string') {
+          // Use specific camera ID (we already verified it's a back camera)
+          config.videoConstraints = {
+            deviceId: { exact: cameraId }
+          };
+        } else {
+          // Use facingMode constraint to request back camera
+          config.videoConstraints = {
+            facingMode: "environment" // Force back camera
+          };
         }
 
         await html5QrCode.start(
           cameraId,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
+          config,
           (decodedText) => {
             // Parse station ID from QR code
             const detectedId = decodedText.trim() as StationId;
