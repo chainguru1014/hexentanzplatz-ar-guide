@@ -1,0 +1,95 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+		<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+		<script src="index.587899.js" type="module" async=""></script>
+
+		<style>body,html{padding:0;margin:0;font-family:sans-serif;height:100vh;width:100vw;touch-action:pan-x pan-y;}.splash{background-color:rgb(31, 32, 33);position:fixed;width:100%;height:100%;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}.splash-box{width:304px;max-width:90%;background:rgba(31, 32, 33, 0.78);border-radius:8px;padding:50px 20px 50px 20px;box-sizing:border-box;}.splash-box > h1{font-size:34px;font-weight:700;padding:0;margin:0;color:white;}.splash-highlight{color:#6ae5e0;}.zcomponent-launched .splash{display:none;}#launchButton{background:linear-gradient(94deg, #6be5ad 0%, #53afe4 100.05%);border-radius:8px;border:none;padding:11px 23px;font-size:20px;margin-top:30px;line-height:24px;height:48px;color:black;}#launchButton:disabled{background:none;background-color:none;width:48px;visibility:hidden;padding:0px;}#launchButton:disabled:before{content:' ';visibility:visible;display:block;width:48px;height:48px;margin:0px;border-radius:50%;box-sizing:border-box;border:5px solid #fff;border-color:#fff transparent #fff transparent;animation:loading-animation 1.2s linear infinite;}@keyframes loading-animation{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
+	</head>
+	<body>
+		<!-- <div id="mc-controls">
+			<button id="btnPlay" disabled="">Play</button>
+			<button id="btnPause" disabled="">Pause</button>
+		</div> -->
+		<div class="splash">
+			<div class="splash-box">
+				<h1>An <span class="splash-highlight">immersive</span> web experience</h1>
+				<button id="launchButton" disabled="">Launch</button>
+			</div>
+		</div>
+		<style>#mc-controls{position:fixed;left:12px;bottom:12px;z-index:999999;display:flex;gap:10px;pointer-events:auto;}canvas{pointer-events:none;}#mc-controls button{padding:10px 14px;border-radius:10px;border:0;font-weight:600;background:rgba(0,0,0,0.6);color:white;backdrop-filter:blur(6px);}#mc-controls button:disabled{opacity:0.4;}</style>
+
+		<script>
+			// Listen for postMessage commands from parent window (when embedded in iframe)
+			window.addEventListener("message", function(event) {
+				// Only accept messages from same origin
+				if (event.origin !== window.location.origin) return;
+				
+				const data = event.data;
+				if (!data || typeof data !== "object") return;
+				
+				console.log("[Mattercraft] Received message:", data);
+				
+				// Handle play/pause commands
+				if (data.type === "MC_PLAY") {
+					const btnPlay = document.getElementById("btnPlay");
+					if (btnPlay && !btnPlay.disabled) {
+						btnPlay.click();
+						console.log("[Mattercraft] Play button clicked");
+					} else {
+						console.warn("[Mattercraft] Play button not available or disabled");
+					}
+				}
+				
+				if (data.type === "MC_PAUSE") {
+					const btnPause = document.getElementById("btnPause");
+					if (btnPause && !btnPause.disabled) {
+						btnPause.click();
+						console.log("[Mattercraft] Pause button clicked");
+					} else {
+						console.warn("[Mattercraft] Pause button not available or disabled");
+					}
+				}
+				
+				if (data.type === "MC_TOGGLE") {
+					const btnPlay = document.getElementById("btnPlay");
+					const btnPause = document.getElementById("btnPause");
+					// Toggle: if play is enabled, click play; otherwise click pause
+					if (btnPlay && !btnPlay.disabled) {
+						btnPlay.click();
+					} else if (btnPause && !btnPause.disabled) {
+						btnPause.click();
+					}
+				}
+				
+				// Send ready state back to parent
+				if (data.type === "MC_STATUS") {
+					const btnPlay = document.getElementById("btnPlay");
+					const btnPause = document.getElementById("btnPause");
+					window.parent.postMessage({
+						type: "MC_STATE",
+						ready: !!(btnPlay && btnPause),
+						playing: btnPause && !btnPause.disabled
+					}, "*");
+				}
+			});
+			
+			// Send MC_READY when Mattercraft is initialized
+			// This will be triggered when the launch button becomes enabled
+			const observer = new MutationObserver(function(mutations) {
+				const launchButton = document.getElementById("launchButton");
+				if (launchButton && !launchButton.disabled) {
+					window.parent.postMessage({ type: "MC_READY" }, "*");
+					observer.disconnect();
+				}
+			});
+			
+			const launchButton = document.getElementById("launchButton");
+			if (launchButton) {
+				observer.observe(launchButton, { attributes: true, attributeFilter: ["disabled"] });
+			}
+		</script>
+
+	</body>
+</html>

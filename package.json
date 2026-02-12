@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:https": "node server.js",
+    "cert:generate": "node scripts/generate-cert.js",
     "build": "next build",
     "build:flat": "next build && node scripts/flatten-build.mjs",
     "start": "next start",

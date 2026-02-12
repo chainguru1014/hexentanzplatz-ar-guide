@@ -1,7 +1,10 @@
 /**
  * Mattercraft bridge: thin layer so UI doesn't depend on Mattercraft internals.
  * Expects window.MC to be provided by the Mattercraft integration.
+ * Falls back to postMessage when Mattercraft is in an iframe.
  */
+
+import { sendToMattercraftIframe } from "./mcIframeBridge";
 
 declare global {
   interface Window {
@@ -68,15 +71,30 @@ export function onMcSnapshot(cb: (data: unknown) => void): () => void {
 }
 
 export function mcPlayAudio(): void {
-  window.MC?.playAudio?.();
+  if (window.MC?.playAudio) {
+    window.MC.playAudio();
+    return;
+  }
+  // Fallback: send postMessage to Mattercraft iframe
+  sendToMattercraftIframe("MC_PLAY");
 }
 
 export function mcPauseAudio(): void {
-  window.MC?.pauseAudio?.();
+  if (window.MC?.pauseAudio) {
+    window.MC.pauseAudio();
+    return;
+  }
+  // Fallback: send postMessage to Mattercraft iframe
+  sendToMattercraftIframe("MC_PAUSE");
 }
 
 export function mcSeekAudio(time: number): void {
-  window.MC?.seekAudio?.(time);
+  if (window.MC?.seekAudio) {
+    window.MC.seekAudio(time);
+    return;
+  }
+  // Fallback: send postMessage to Mattercraft iframe
+  sendToMattercraftIframe("MC_SEEK", { time });
 }
 
 export function onMcAudioPlay(cb: () => void): () => void {
