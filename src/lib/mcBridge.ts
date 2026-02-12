@@ -19,6 +19,11 @@ declare global {
       onAudioPlay?: (callback: () => void) => void;
       onAudioPause?: (callback: () => void) => void;
       onAudioProgress?: (callback: (time: number, duration: number) => void) => void;
+      // Dual model support (Station 3+)
+      showModel2?: () => void;
+      hideModel2?: () => void;
+      playModel2?: () => void;
+      pauseModel2?: () => void;
     };
   }
 }
