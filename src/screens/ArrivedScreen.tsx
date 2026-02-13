@@ -15,6 +15,7 @@ export function ArrivedScreen() {
   const searchParams = useSearchParams();
   const stationParam = searchParams.get("station");
   const bottomPadding = useBottomSafeArea();
+  const [isNavigating, setIsNavigating] = useState(false);
   const stationId = useMemo(() => {
     if (!stationParam) return "s01" as StationId;
     return stationParam as StationId;
@@ -35,6 +36,8 @@ export function ArrivedScreen() {
   };
 
   const handleStart = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     router.push(`/station/${stationId}`);
   };
 
@@ -76,6 +79,7 @@ export function ArrivedScreen() {
         <button
           type="button"
           onClick={handleStart}
+          disabled={isNavigating}
           style={{
             width: "100%",
             padding: "16px 24px",
@@ -85,16 +89,19 @@ export function ArrivedScreen() {
             borderRadius: 12,
             fontSize: 18,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: isNavigating ? "not-allowed" : "pointer",
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             transition: "transform 0.2s, box-shadow 0.2s",
             position: "relative",
             zIndex: 10,
             pointerEvents: "auto",
+            opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            if (!isNavigating) {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            }
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = "translateY(0)";
@@ -109,7 +116,7 @@ export function ArrivedScreen() {
             handleStart();
           }}
         >
-          Erlebnis starten
+          {isNavigating ? "Wird verarbeitet..." : "Erlebnis starten"}
         </button>
       </div>
     </div>

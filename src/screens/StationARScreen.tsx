@@ -281,6 +281,9 @@ export function StationARScreen() {
   }, [stationId]);
 
   const handleSpecialButton = (skipNext: boolean = false) => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    
     // Get current station from store (not from URL) to ensure correct increment
     const currentStationId = useAppStore.getState().currentStationId;
     const currentNum = currentStationId === "s00" ? 0 : Number(currentStationId.slice(1));
@@ -403,7 +406,7 @@ export function StationARScreen() {
               cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
             }}
           >
-            {!mattercraftReady ? "Lädt..." : "Mehr erfahren!"}
+            {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : "Mehr erfahren!")}
           </button>
           
           {/* Special button(s) */}
@@ -424,7 +427,7 @@ export function StationARScreen() {
                 cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
               }}
             >
-              {!mattercraftReady ? "Lädt..." : station.specialButtonTitle}
+                  {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : station.specialButtonTitle)}
             </button>
           )}
           
@@ -449,7 +452,7 @@ export function StationARScreen() {
                     cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
                   }}
                 >
-                  {!mattercraftReady ? "Lädt..." : title}
+                  {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : title)}
                 </button>
               ))}
             </>

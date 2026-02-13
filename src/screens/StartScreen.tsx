@@ -113,8 +113,10 @@ export function StartScreen() {
             opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            if (!isNavigating) {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            }
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = "translateY(0)";
@@ -129,7 +131,7 @@ export function StartScreen() {
             handleReady();
           }}
         >
-          Ja, ich bin bereit!
+          {isNavigating ? "Wird verarbeitet..." : "Ja, ich bin bereit!"}
         </button>
         <button
           type="button"
@@ -150,15 +152,17 @@ export function StartScreen() {
             opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.7)";
+            if (!isNavigating) {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.7)";
+            }
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
             e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.5)";
           }}
         >
-          Worum geht es hier eigentlich?
+          {isNavigating ? "Wird verarbeitet..." : "Worum geht es hier eigentlich?"}
         </button>
         </div>
       </div>

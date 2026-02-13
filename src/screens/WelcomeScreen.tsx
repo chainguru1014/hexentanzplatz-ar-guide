@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/state/store";
 
@@ -11,8 +12,11 @@ export function WelcomeScreen() {
   const router = useRouter();
   const unlockTour = useAppStore((s) => s.unlockTour);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleSkip = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     unlockTour();
     // Set to position 0 (start position, station 1 will be target)
     setCurrentStation("s00" as any);
@@ -94,6 +98,7 @@ export function WelcomeScreen() {
         <button
           type="button"
           onClick={handleSkip}
+          disabled={isNavigating}
           style={{
             padding: "16px 24px",
             background: "#4caf50",
@@ -102,18 +107,21 @@ export function WelcomeScreen() {
             borderRadius: 12,
             fontSize: 18,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: isNavigating ? "not-allowed" : "pointer",
             width: "100%",
             transition: "background 0.2s",
+            opacity: isNavigating ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = "#45a049";
+            if (!isNavigating) {
+              e.currentTarget.style.background = "#45a049";
+            }
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.background = "#4caf50";
           }}
         >
-          Überspringen
+          {isNavigating ? "Wird verarbeitet..." : "Überspringen"}
         </button>
       </div>
     </div>

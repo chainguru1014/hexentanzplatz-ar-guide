@@ -123,7 +123,7 @@ export function MapScreen() {
               cursor: isNavigating ? "not-allowed" : "pointer",
             }}
           >
-            {isNavigating ? "Lädt..." : "Zielpunkt erreicht"}
+            {isNavigating ? "Wird verarbeitet..." : "Zielpunkt erreicht"}
           </button>
         </div>
       </div>

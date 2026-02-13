@@ -87,11 +87,15 @@ export function useBottomSafeArea(): number {
       // For Android devices, navigation bar is typically 48-80px
       // For iOS devices with notch, safe area inset should work
       // But we need a minimum padding to ensure content isn't cut off
+      // User requirement: buttons should be 50px higher than device screen bottom
       const minPadding = 70; // Minimum padding for Android navigation bars (typically 56-80px)
       
       // If safe area inset is very small or 0, use minimum padding
       // This handles Android devices where safe-area-inset-bottom might not be supported
-      const finalPadding = safeAreaInset > 10 ? safeAreaInset : minPadding;
+      const basePadding = safeAreaInset > 10 ? safeAreaInset : minPadding;
+      
+      // Add 50px to ensure buttons are 50px higher than device bottom bar
+      const finalPadding = basePadding + 50;
       
       setBottomPadding(finalPadding);
     };

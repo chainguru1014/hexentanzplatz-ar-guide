@@ -24,6 +24,7 @@ export function IntroARScreen() {
   const unlockTour = useAppStore((s) => s.unlockTour);
   const unlockStation = useAppStore((s) => s.unlockStation);
   const bottomPadding = useBottomSafeArea();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     unlockTour();
@@ -42,6 +43,8 @@ export function IntroARScreen() {
   }
 
   const handleButtonClick = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     router.push("/map");
   };
 
@@ -141,6 +144,7 @@ export function IntroARScreen() {
         <button
           type="button"
           onClick={handleButtonClick}
+          disabled={isNavigating}
           className="btn btnPrimary"
           style={{
             width: "100%",
@@ -153,17 +157,21 @@ export function IntroARScreen() {
             borderRadius: 12,
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             transition: "transform 0.2s, box-shadow 0.2s",
+            opacity: isNavigating ? 0.6 : 1,
+            cursor: isNavigating ? "not-allowed" : "pointer",
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            if (!isNavigating) {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+            }
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = "translateY(0)";
             e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
           }}
         >
-          Weiter
+          {isNavigating ? "Wird verarbeitet..." : "Weiter"}
         </button>
       </div>
     </div>
