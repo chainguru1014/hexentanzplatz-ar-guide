@@ -39,7 +39,7 @@ export function StationARScreen() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [mattercraftReady, setMattercraftReady] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigatingButtonIndex, setNavigatingButtonIndex] = useState<number | null>(null);
   const mainAudioRef = useRef<AudioPlayerBarRef>(null);
   const bottomPadding = useBottomSafeArea();
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
@@ -280,9 +280,9 @@ export function StationARScreen() {
     lastSpeakerRef.current = null;
   }, [stationId]);
 
-  const handleSpecialButton = (skipNext: boolean = false) => {
-    if (isNavigating) return;
-    setIsNavigating(true);
+  const handleSpecialButton = (skipNext: boolean = false, buttonIndex: number = 0) => {
+    if (navigatingButtonIndex !== null) return;
+    setNavigatingButtonIndex(buttonIndex);
     
     // Get current station from store (not from URL) to ensure correct increment
     const currentStationId = useAppStore.getState().currentStationId;
@@ -392,21 +392,21 @@ export function StationARScreen() {
           flexDirection: "column",
           gap: 12,
         }}>
-          {/* "Mehr erfahren!" button - opens dialog */}
+          {/* "Mehr erfahren!" button - opens dialog (doesn't navigate, so no loading state) */}
           <button 
             type="button" 
             className="btn btnPrimary" 
             onClick={handleMehrErfahren}
-            disabled={isNavigating || !mattercraftReady}
+            disabled={navigatingButtonIndex !== null || !mattercraftReady}
             style={{
               padding: "14px 24px",
               fontSize: 16,
               fontWeight: 600,
-              opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
-              cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
+              opacity: (navigatingButtonIndex !== null || !mattercraftReady) ? 0.5 : 1,
+              cursor: (navigatingButtonIndex !== null || !mattercraftReady) ? "not-allowed" : "pointer",
             }}
           >
-            {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : "Mehr erfahren!")}
+            {!mattercraftReady ? "Lädt..." : "Mehr erfahren!"}
           </button>
           
           {/* Special button(s) */}
@@ -414,8 +414,8 @@ export function StationARScreen() {
             <button 
               type="button" 
               className="btn" 
-              onClick={() => handleSpecialButton(false)}
-              disabled={isNavigating || !mattercraftReady}
+              onClick={() => handleSpecialButton(false, 0)}
+              disabled={navigatingButtonIndex !== null || !mattercraftReady}
               style={{
                 padding: "14px 24px",
                 fontSize: 16,
@@ -423,38 +423,42 @@ export function StationARScreen() {
                 background: "rgba(255, 255, 255, 0.2)",
                 color: "white",
                 border: "2px solid rgba(255, 255, 255, 0.5)",
-                opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
-                cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
+                opacity: (navigatingButtonIndex !== null || !mattercraftReady) ? 0.5 : 1,
+                cursor: (navigatingButtonIndex !== null || !mattercraftReady) ? "not-allowed" : "pointer",
               }}
             >
-                  {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : station.specialButtonTitle)}
+              {navigatingButtonIndex === 0 ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : station.specialButtonTitle)}
             </button>
           )}
           
           {/* Multiple special buttons (for station 4+) */}
           {station.specialButtonTitles && station.specialButtonTitles.length > 0 && (
             <>
-              {station.specialButtonTitles.map((title, index) => (
-                <button 
-                  key={index}
-                  type="button" 
-                  className="btn" 
-                  onClick={() => handleSpecialButton(index === 1)} // Second button skips next station
-                  disabled={isNavigating || !mattercraftReady}
-                  style={{
-                    padding: "14px 24px",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    background: "rgba(255, 255, 255, 0.2)",
-                    color: "white",
-                    border: "2px solid rgba(255, 255, 255, 0.5)",
-                    opacity: (isNavigating || !mattercraftReady) ? 0.5 : 1,
-                    cursor: (isNavigating || !mattercraftReady) ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {isNavigating ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : title)}
-                </button>
-              ))}
+              {station.specialButtonTitles.map((title, index) => {
+                // Button index: 0 for first special button, 1 for second, etc.
+                const buttonIndex = station.specialButtonTitle ? index + 1 : index;
+                return (
+                  <button 
+                    key={index}
+                    type="button" 
+                    className="btn" 
+                    onClick={() => handleSpecialButton(index === 1, buttonIndex)} // Second button skips next station
+                    disabled={navigatingButtonIndex !== null || !mattercraftReady}
+                    style={{
+                      padding: "14px 24px",
+                      fontSize: 16,
+                      fontWeight: 600,
+                      background: "rgba(255, 255, 255, 0.2)",
+                      color: "white",
+                      border: "2px solid rgba(255, 255, 255, 0.5)",
+                      opacity: (navigatingButtonIndex !== null || !mattercraftReady) ? 0.5 : 1,
+                      cursor: (navigatingButtonIndex !== null || !mattercraftReady) ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {navigatingButtonIndex === buttonIndex ? "Wird verarbeitet..." : (!mattercraftReady ? "Lädt..." : title)}
+                  </button>
+                );
+              })}
             </>
           )}
         </div>

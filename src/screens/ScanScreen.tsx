@@ -88,18 +88,19 @@ export function ScanScreen() {
     return cleanup;
   }, [handleQRDetect]);
 
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [isNavigatingCancel, setIsNavigatingCancel] = useState(false);
+  const [isNavigatingContinue, setIsNavigatingContinue] = useState(false);
 
   const handleCancel = () => {
-    if (isNavigating) return;
-    setIsNavigating(true);
+    if (isNavigatingCancel || isNavigatingContinue) return;
+    setIsNavigatingCancel(true);
     goToMap();
     router.push("/map");
   };
 
   const handleSuccessContinue = () => {
-    if (isNavigating || !detectedStationId) return;
-    setIsNavigating(true);
+    if (isNavigatingCancel || isNavigatingContinue || !detectedStationId) return;
+    setIsNavigatingContinue(true);
     // Navigate to arrived page
     router.push(`/arrived?station=${detectedStationId}`);
   };
@@ -228,7 +229,7 @@ export function ScanScreen() {
                 <button
                   type="button"
                   onClick={handleSuccessContinue}
-                  disabled={isNavigating}
+                  disabled={isNavigatingCancel || isNavigatingContinue}
                   style={{
                     width: "100%",
                     padding: "14px 24px",
@@ -238,13 +239,13 @@ export function ScanScreen() {
                     color: "white",
                     fontSize: 16,
                     fontWeight: 600,
-                    cursor: isNavigating ? "not-allowed" : "pointer",
+                    cursor: (isNavigatingCancel || isNavigatingContinue) ? "not-allowed" : "pointer",
                     transition: "all 0.2s",
                     boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
-                    opacity: isNavigating ? 0.6 : 1,
+                    opacity: (isNavigatingCancel || isNavigatingContinue) ? 0.6 : 1,
                   }}
                   onMouseOver={(e) => {
-                    if (!isNavigating) {
+                    if (!isNavigatingCancel && !isNavigatingContinue) {
                       e.currentTarget.style.transform = "translateY(-2px)";
                       e.currentTarget.style.boxShadow = "0 6px 16px rgba(76, 175, 80, 0.4)";
                     }
@@ -254,7 +255,7 @@ export function ScanScreen() {
                     e.currentTarget.style.boxShadow = "0 4px 12px rgba(76, 175, 80, 0.3)";
                   }}
                 >
-                  {isNavigating ? "Wird verarbeitet..." : "Los geht's!"}
+                  {isNavigatingContinue ? "Wird verarbeitet..." : "Los geht's!"}
                 </button>
               </div>
             </div>
@@ -342,7 +343,7 @@ export function ScanScreen() {
           <button
             type="button"
             onClick={handleCancel}
-            disabled={isNavigating}
+            disabled={isNavigatingCancel || isNavigatingContinue}
             className="btn scan-screen__cancel"
             style={{
               width: "100%",
@@ -353,12 +354,12 @@ export function ScanScreen() {
               color: "white",
               fontSize: 16,
               fontWeight: 500,
-              cursor: isNavigating ? "not-allowed" : "pointer",
+              cursor: (isNavigatingCancel || isNavigatingContinue) ? "not-allowed" : "pointer",
               transition: "all 0.2s",
-              opacity: isNavigating ? 0.6 : 1,
+              opacity: (isNavigatingCancel || isNavigatingContinue) ? 0.6 : 1,
             }}
             onMouseOver={(e) => {
-              if (!isNavigating) {
+              if (!isNavigatingCancel && !isNavigatingContinue) {
                 e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
               }
             }}
@@ -366,7 +367,7 @@ export function ScanScreen() {
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
             }}
           >
-            {isNavigating ? "Wird verarbeitet..." : "Abbrechen"}
+            {isNavigatingCancel ? "Wird verarbeitet..." : "Abbrechen"}
           </button>
         </div>
       </div>

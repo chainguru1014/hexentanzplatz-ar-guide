@@ -14,11 +14,12 @@ export function StartScreen() {
   const unlockTour = useAppStore((s) => s.unlockTour);
   const setCurrentStation = useAppStore((s) => s.setCurrentStation);
   const bottomPadding = useBottomSafeArea();
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [isNavigatingReady, setIsNavigatingReady] = useState(false);
+  const [isNavigatingInfo, setIsNavigatingInfo] = useState(false);
 
   const handleReady = () => {
-    if (isNavigating) return;
-    setIsNavigating(true);
+    if (isNavigatingReady || isNavigatingInfo) return;
+    setIsNavigatingReady(true);
     try {
       unlockTour();
       setCurrentStation("s00" as any);
@@ -32,8 +33,8 @@ export function StartScreen() {
   };
 
   const handleInfo = () => {
-    if (isNavigating) return;
-    setIsNavigating(true);
+    if (isNavigatingReady || isNavigatingInfo) return;
+    setIsNavigatingInfo(true);
     unlockTour();
     setCurrentStation("s00" as any);
     router.push("/intro");
@@ -94,7 +95,7 @@ export function StartScreen() {
             e.stopPropagation();
             handleReady();
           }}
-          disabled={isNavigating}
+          disabled={isNavigatingReady || isNavigatingInfo}
           style={{
             flex: 1,
             padding: "16px 24px",
@@ -104,16 +105,16 @@ export function StartScreen() {
             borderRadius: 12,
             fontSize: 16,
             fontWeight: 600,
-            cursor: isNavigating ? "not-allowed" : "pointer",
+            cursor: (isNavigatingReady || isNavigatingInfo) ? "not-allowed" : "pointer",
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             transition: "transform 0.2s, box-shadow 0.2s",
             position: "relative",
             zIndex: 10,
             pointerEvents: "auto",
-            opacity: isNavigating ? 0.6 : 1,
+            opacity: (isNavigatingReady || isNavigatingInfo) ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            if (!isNavigating) {
+            if (!isNavigatingReady && !isNavigatingInfo) {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
             }
@@ -131,12 +132,12 @@ export function StartScreen() {
             handleReady();
           }}
         >
-          {isNavigating ? "Wird verarbeitet..." : "Ja, ich bin bereit!"}
+          {isNavigatingReady ? "Wird verarbeitet..." : "Ja, ich bin bereit!"}
         </button>
         <button
           type="button"
           onClick={handleInfo}
-          disabled={isNavigating}
+          disabled={isNavigatingReady || isNavigatingInfo}
           style={{
             flex: 1,
             padding: "16px 24px",
@@ -146,13 +147,13 @@ export function StartScreen() {
             borderRadius: 12,
             fontSize: 16,
             fontWeight: 600,
-            cursor: isNavigating ? "not-allowed" : "pointer",
+            cursor: (isNavigatingReady || isNavigatingInfo) ? "not-allowed" : "pointer",
             backdropFilter: "blur(10px)",
             transition: "background 0.2s, border-color 0.2s",
-            opacity: isNavigating ? 0.6 : 1,
+            opacity: (isNavigatingReady || isNavigatingInfo) ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
-            if (!isNavigating) {
+            if (!isNavigatingReady && !isNavigatingInfo) {
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
               e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.7)";
             }
@@ -162,7 +163,7 @@ export function StartScreen() {
             e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.5)";
           }}
         >
-          {isNavigating ? "Wird verarbeitet..." : "Worum geht es hier eigentlich?"}
+          {isNavigatingInfo ? "Wird verarbeitet..." : "Worum geht es hier eigentlich?"}
         </button>
         </div>
       </div>
